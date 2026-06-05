@@ -1,0 +1,10 @@
+# Netlify config — makes /dashboard.html the main page
+[[redirects]]
+  from = "/"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/app"
+  to = "/dashboard.html"
+  status = 200

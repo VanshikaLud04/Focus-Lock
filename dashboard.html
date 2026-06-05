@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Lock — Study Dashboard</title>
+  <meta name="description" content="Your calm study companion — Pomodoro timer, todo list, and distraction alerts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #111009;
+      --bg2:       #171410;
+      --surface:   #1e1b15;
+      --surface2:  #26221a;
+      --surface3:  #2e2920;
+      --border:    rgba(255,238,210,0.07);
+      --border2:   rgba(255,238,210,0.13);
+
+      /* Natural, muted palette */
+      --sage:      #7fa88a;
+      --sage-dim:  rgba(127,168,138,.15);
+      --rose:      #b87d72;
+      --rose-dim:  rgba(184,125,114,.15);
+      --peach:     #c49870;
+      --peach-dim: rgba(196,152,112,.15);
+      --lav:       #9e8fba;
+      --lav-dim:   rgba(158,143,186,.15);
+      --sky:       #7898aa;
+      --sky-dim:   rgba(120,152,170,.15);
+      --cream:     #c8b898;
+      --amber:     #b89260;
+
+      --text:      #e4d8cc;
+      --muted:     #6e6358;
+      --muted2:    #9e9082;
+
+      --radius:    16px;
+      --radius-sm: 11px;
+      --radius-xs: 8px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* subtle warm ambient glow */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 15%, rgba(196,152,112,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 45% at 80% 80%, rgba(127,168,138,.06) 0%, transparent 65%);
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 290px 1fr 310px;
+      grid-template-rows: 56px 1fr;
+      height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      background: rgba(17,16,9,.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      gap: 14px;
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--cream);
+      letter-spacing: -.01em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .topbar-spacer { flex: 1; }
+
+    .focus-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-size: .76rem;
+      font-weight: 700;
+      border: 1px solid;
+      transition: all .5s;
+    }
+
+    .focus-badge.focused    { background: var(--sage-dim);  border-color: rgba(127,168,138,.3); color: var(--sage); }
+    .focus-badge.distracted { background: var(--rose-dim);  border-color: rgba(184,125,114,.3); color: var(--rose); }
+    .focus-badge.idle       { background: rgba(110,99,88,.1); border-color: rgba(110,99,88,.25); color: var(--muted2); }
+
+    .focus-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      transition: background .5s;
+    }
+    .focused    .focus-dot { background: var(--sage);   animation: pulse 2.5s infinite; }
+    .distracted .focus-dot { background: var(--rose);   animation: pulse 1.2s infinite; }
+    .idle       .focus-dot { background: var(--muted); }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(.65); }
+    }
+
+    .session-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    /* ── SIDEBAR (TODO) ── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 18px 18px 13px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-title {
+      font-size: .67rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 13px;
+    }
+
+    .todo-add { display: flex; gap: 7px; }
+
+    .todo-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 8px 11px;
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: .84rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .todo-input:focus { border-color: rgba(196,152,112,.35); }
+    .todo-input::placeholder { color: var(--muted); }
+
+    .todo-add-btn {
+      width: 34px; height: 34px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-xs);
+      color: var(--peach);
+      font-size: 1.15rem; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s;
+      flex-shrink: 0;
+    }
+    .todo-add-btn:hover { background: var(--peach-dim); border-color: rgba(196,152,112,.3); }
+
+    .todo-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+    }
+    .todo-list::-webkit-scrollbar { width: 3px; }
+    .todo-list::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+    .todo-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      color: var(--muted);
+    }
+    .todo-empty .em { font-size: 2rem; opacity: .5; }
+    .todo-empty p   { font-size: .8rem; text-align: center; line-height: 1.5; opacity: .6; }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 10px;
+      border-radius: var(--radius-xs);
+      margin-bottom: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: border-color .2s;
+      animation: slideIn .22s ease;
+    }
+    .todo-item:hover { border-color: var(--border2); }
+
+    @keyframes slideIn {
+      from { opacity:0; transform:translateX(-8px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
+
+    .todo-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--muted);
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+    }
+    .todo-check:hover { border-color: var(--sage); }
+    .todo-check.done  { background: var(--sage); border-color: var(--sage); }
+    .todo-check.done::after { content:'✓'; color:#fff; font-size:.62rem; font-weight:900; }
+
+    .todo-text { flex:1; font-size:.85rem; color:var(--text); line-height:1.3; }
+    .todo-text.done { color:var(--muted); text-decoration:line-through; }
+
+    .todo-del {
+      opacity:0; background:none; border:none;
+      color:var(--rose); cursor:pointer;
+      font-size:.82rem; padding:2px 4px; border-radius:4px;
+      transition:opacity .18s;
+    }
+    .todo-item:hover .todo-del { opacity:.7; }
+    .todo-del:hover { opacity:1 !important; }
+
+    .todo-footer {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .progress-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .7rem;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--sage), var(--sky));
+      transition: width .45s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── MAIN CENTER ── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    /* Mode tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px;
+    }
+
+    .mode-tab {
+      padding: 6px 18px;
+      border-radius: 100px;
+      font-size: .78rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all .25s;
+      color: var(--muted2);
+      background: transparent;
+      font-family: 'Nunito', sans-serif;
+      letter-spacing: .01em;
+    }
+    .mode-tab.active {
+      background: var(--surface3);
+      color: var(--cream);
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+
+    /* Timer ring */
+    .timer-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-svg { transform: rotate(-90deg); }
+
+    .timer-track {
+      fill: none;
+      stroke: var(--surface2);
+      stroke-width: 8;
+    }
+
+    .timer-ring {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .9s cubic-bezier(.4,0,.2,1), stroke .4s;
+    }
+
+    .timer-center {
+      position: absolute;
+      text-align: center;
+    }
+
+    .timer-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3rem;
+      font-weight: 500;
+      letter-spacing: -.02em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .timer-label {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-top: 7px;
+      color: var(--muted2);
+    }
+
+    /* Controls */
+    .timer-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ctrl-btn {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--muted2);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+    }
+    .ctrl-btn:hover { background: var(--surface2); color: var(--text); }
+
+    .ctrl-btn.play {
+      width: 58px; height: 58px;
+      font-size: 1.2rem;
+      background: var(--surface2);
+      border-color: var(--border2);
+      color: var(--cream);
+      box-shadow: 0 4px 18px rgba(0,0,0,.35);
+    }
+    .ctrl-btn.play:hover { background: var(--surface3); transform: scale(1.05); }
+
+    /* Duration setters */
+    .duration-row { display: flex; gap: 9px; }
+
+    .dur-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-width: 100px;
+    }
+
+    .dur-label { font-size:.62rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+
+    .dur-controls { display:flex; align-items:center; gap:7px; }
+
+    .dur-btn {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--muted2);
+      cursor: pointer;
+      font-size: .72rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .dur-btn:hover { background: var(--surface3); color: var(--text); }
+
+    .dur-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .95rem;
+      font-weight: 500;
+      min-width: 26px;
+      text-align: center;
+      color: var(--text);
+    }
+
+    /* Pomodoro dots */
+    .pomo-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .pomo-label { font-size:.68rem; color:var(--muted); margin-right:4px; }
+    .pomo-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--surface3);
+      border: 1px solid var(--border2);
+      transition: all .35s;
+    }
+    .pomo-dot.done { background: var(--peach); border-color: var(--peach); box-shadow: 0 0 7px rgba(196,152,112,.4); }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-size: .67rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 11px;
+    }
+
+    .url-row { display:flex; gap:7px; }
+
+    .url-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 8px 11px;
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: .78rem;
+      outline: none;
+      transition: border-color .2s;
+      min-width: 0;
+    }
+    .url-input:focus { border-color: rgba(196,152,112,.3); }
+    .url-input::placeholder { color: var(--muted); }
+
+    .url-btn {
+      padding: 8px 13px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-xs);
+      color: var(--cream);
+      font-size: .75rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+    .url-btn:hover { background: var(--surface3); }
+
+    .quick-links { display:flex; gap:5px; margin-top:9px; flex-wrap:wrap; }
+
+    .quick-chip {
+      font-size: .66rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 100px;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .quick-chip:hover { border-color: rgba(196,152,112,.3); color: var(--peach); background: var(--peach-dim); }
+
+    /* Media */
+    .media-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      gap: 10px;
+    }
+
+    .media-placeholder {
+      width: 100%;
+      flex: 1;
+      background: var(--surface);
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 160px;
+    }
+    .media-placeholder .mp-icon { font-size: 2rem; opacity: .5; }
+    .media-placeholder p { font-size:.78rem; color:var(--muted); text-align:center; line-height:1.55; }
+
+    .media-embed { width:100%; border-radius:var(--radius-sm); overflow:hidden; display:none; }
+    .media-embed iframe { width:100%; height:185px; border:none; }
+
+    /* Now playing */
+    .now-playing {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+      display: none;
+      align-items: center;
+      gap: 9px;
+    }
+    .np-icon { font-size: 1.2rem; }
+    .np-info { flex:1; min-width:0; }
+    .np-title { font-size:.8rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .np-sub   { font-size:.68rem; color:var(--muted); margin-top:1px; }
+    .np-dot   { width:7px; height:7px; border-radius:50%; background:var(--sage); animation:pulse 1.8s infinite; flex-shrink:0; }
+
+    /* Stats card (bottom of right panel) */
+    .stats-card {
+      margin: 0 14px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 13px 15px;
+    }
+
+    .stats-title {
+      font-size: .64rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-item { text-align: center; }
+    .stat-val  { font-family:'JetBrains Mono',monospace; font-size:.95rem; font-weight:500; color:var(--cream); }
+    .stat-lbl  { font-size:.62rem; color:var(--muted); margin-top:2px; letter-spacing:.04em; }
+
+    /* ── POKE OVERLAY ── */
+    .poke-overlay {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .poke-overlay.show { pointer-events:all; opacity:1; }
+
+    .poke-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(8,7,5,.75);
+      backdrop-filter: blur(6px);
+    }
+
+    .poke-card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid rgba(184,125,114,.3);
+      border-radius: var(--radius);
+      padding: 30px 32px;
+      text-align: center;
+      max-width: 360px; width: 90%;
+      animation: pokeBounce .5s cubic-bezier(.36,.07,.19,.97) both;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+
+    @keyframes pokeBounce {
+      0%   { transform:scale(.4); opacity:0; }
+      60%  { transform:scale(1.05); }
+      100% { transform:scale(1); opacity:1; }
+    }
+
+    .poke-emoji {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: 12px;
+      animation: sway 1.2s ease-in-out infinite;
+    }
+
+    @keyframes sway {
+      0%,100% { transform:rotate(-6deg); }
+      50%      { transform:rotate(6deg); }
+    }
+
+    .poke-title { font-size:1.15rem; font-weight:900; color:var(--rose); margin-bottom:8px; }
+    .poke-msg   { font-size:.87rem; color:var(--muted2); line-height:1.65; margin-bottom:20px; }
+    .poke-msg strong { color:var(--text); }
+
+    .poke-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 26px;
+      background: var(--surface2);
+      border: 1px solid rgba(127,168,138,.3);
+      border-radius: 100px;
+      color: var(--sage);
+      font-family: 'Nunito', sans-serif;
+      font-size: .88rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .poke-btn:hover { background: var(--sage-dim); transform: scale(1.03); }
+
+    /* ── BREAK TOAST ── */
+    .break-toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      border: 1px solid rgba(127,168,138,.25);
+      border-radius: 100px;
+      padding: 11px 22px;
+      display: flex; align-items: center; gap: 9px;
+      font-size: .84rem; font-weight: 700;
+      color: var(--sage);
+      z-index: 100;
+      transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+      backdrop-filter: blur(10px);
+    }
+    .break-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── AUTO-PAUSE TOGGLE ── */
+    .autopause-row {
+      display: flex;
+      justify-content: center;
+    }
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-wrap input { display: none; }
+    .toggle-track {
+      width: 34px; height: 18px;
+      background: var(--surface3);
+      border-radius: 100px;
+      position: relative;
+      border: 1px solid var(--border2);
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+    .toggle-wrap input:checked + .toggle-track { background: var(--sage-dim); border-color: rgba(127,168,138,.4); }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform .25s, background .25s;
+    }
+    .toggle-wrap input:checked + .toggle-track .toggle-thumb {
+      transform: translateX(16px);
+      background: var(--sage);
+    }
+    .toggle-text { font-size: .72rem; color: var(--muted2); transition: color .2s; }
+    .toggle-wrap:hover .toggle-text { color: var(--text); }
+
+    /* ── CAMERA ── */
+    .cam-section {
+      padding: 13px 14px 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cam-label {
+      font-size: .64rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .cam-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    #cam-feed {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .cam-offline {
+      position: absolute; inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* ── GOAL BAR ── */
+    .goal-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-right: 10px;
+    }
+    .goal-label {
+      font-size: .67rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .05em;
+    }
+    .goal-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      color: var(--cream);
+      min-width: 38px;
+      text-align: center;
+    }
+    .goal-bar-wrap {
+      width: 90px;
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-right: 14px;
+    }
+    .goal-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--peach), var(--sage));
+      border-radius: 100px;
+      transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:2px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">🔒 Focus Lock</div>
+    <div class="topbar-spacer"></div>
+
+    <!-- Session goal setter -->
+    <div class="goal-wrap" id="goal-wrap">
+      <span class="goal-label">Goal</span>
+      <button class="dur-btn" onclick="changeGoal(-30)">−</button>
+      <span class="goal-val" id="goal-val">2h 0m</span>
+      <button class="dur-btn" onclick="changeGoal(+30)">+</button>
+    </div>
+    <div class="goal-bar-wrap">
+      <div class="goal-bar-fill" id="goal-bar-fill" style="width:0%"></div>
+    </div>
+
+    <div class="focus-badge idle" id="focus-badge">
+      <div class="focus-dot"></div>
+      <span id="focus-label">Idle</span>
+    </div>
+    <div class="session-time" id="session-clock">00:00</div>
+  </div>
+
+  <!-- LEFT: TODO -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">To-Do</div>
+      <div class="todo-add">
+        <input class="todo-input" id="todo-input" type="text" placeholder="Add a task…" maxlength="80" />
+        <button class="todo-add-btn" onclick="addTodo()">+</button>
+      </div>
+    </div>
+
+    <div class="todo-list" id="todo-list">
+      <div class="todo-empty" id="todo-empty">
+        <div class="em">🌿</div>
+        <p>No tasks yet.<br>Add something to work on.</p>
+      </div>
+      <div id="todo-items"></div>
+    </div>
+
+    <div class="todo-footer">
+      <div class="progress-row">
+        <span id="todo-done-count">0 done</span>
+        <span id="todo-total-count">0 tasks</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="todo-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: TIMER -->
+  <div class="main">
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-study" onclick="setMode('study')">Study</button>
+      <button class="mode-tab"        id="tab-break" onclick="setMode('break')">Break</button>
+    </div>
+
+    <div class="timer-wrap">
+      <svg class="timer-svg" width="220" height="220" viewBox="0 0 220 220">
+        <defs>
+          <linearGradient id="gradStudy" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="#c4987a"/>
+            <stop offset="100%" stop-color="#9e8fba"/>
+          </linearGradient>
+          <linearGradient id="gradBreak" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stop-color="#7fa88a"/>
+            <stop offset="100%" stop-color="#7898aa"/>
+          </linearGradient>
+        </defs>
+        <circle class="timer-track" cx="110" cy="110" r="96"/>
+        <circle class="timer-ring" id="timer-ring"
+                cx="110" cy="110" r="96"
+                stroke="url(#gradStudy)"
+                stroke-dasharray="603.19"
+                stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-center">
+        <div class="timer-display" id="timer-display">25:00</div>
+        <div class="timer-label" id="timer-label">Study</div>
+      </div>
+    </div>
+
+    <div class="pomo-row">
+      <span class="pomo-label">Round</span>
+      <div class="pomo-dot" id="pd0"></div>
+      <div class="pomo-dot" id="pd1"></div>
+      <div class="pomo-dot" id="pd2"></div>
+      <div class="pomo-dot" id="pd3"></div>
+    </div>
+
+    <div class="timer-controls">
+      <button class="ctrl-btn" onclick="resetTimer()" title="Reset">↺</button>
+      <button class="ctrl-btn play" id="play-btn" onclick="toggleTimer()">▶</button>
+      <button class="ctrl-btn" onclick="skipTimer()" title="Skip">⏭</button>
+    </div>
+
+    <!-- Auto-pause toggle -->
+    <div class="autopause-row">
+      <label class="toggle-wrap" id="autopause-label">
+        <input type="checkbox" id="autopause-toggle" onchange="onAutoPauseChange()" />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="toggle-text">Pause timer when distracted</span>
+      </label>
+    </div>
+
+    <div class="duration-row">
+      <div class="dur-card">
+        <div class="dur-label">Study</div>
+        <div class="dur-controls">
+          <button class="dur-btn" onclick="changeDur('study',-5)">−</button>
+          <div class="dur-value" id="study-dur">25</div>
+          <button class="dur-btn" onclick="changeDur('study',+5)">+</button>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted)">min</div>
+      </div>
+      <div class="dur-card">
+        <div class="dur-label">Break</div>
+        <div class="dur-controls">
+          <button class="dur-btn" onclick="changeDur('break',-1)">−</button>
+          <div class="dur-value" id="break-dur">5</div>
+          <button class="dur-btn" onclick="changeDur('break',+1)">+</button>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted)">min</div>
+      </div>
+      <div class="dur-card">
+        <div class="dur-label">Long</div>
+        <div class="dur-controls">
+          <button class="dur-btn" onclick="changeDur('long',-5)">−</button>
+          <div class="dur-value" id="long-dur">15</div>
+          <button class="dur-btn" onclick="changeDur('long',+5)">+</button>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted)">min</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: MEDIA + STATS -->
+  <div class="right-panel">
+
+    <!-- Camera feed -->
+    <div class="cam-section" id="cam-section">
+      <div class="cam-label">Live Camera</div>
+      <div class="cam-wrap">
+        <img id="cam-feed" src="http://localhost:5050/video_feed"
+             onerror="camOffline()" alt="camera feed" />
+        <div class="cam-offline" id="cam-offline">
+          <div style="font-size:1.5rem;opacity:.4">📷</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:6px" id="cam-offline-text">Camera offline<br><span style="font-size:.65rem">Press play to start tracking</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Music / Lecture</div>
+      <div class="url-row">
+        <input class="url-input" id="url-input" type="text" placeholder="Paste YouTube or Spotify URL…" />
+        <button class="url-btn" onclick="loadMedia()">Load</button>
+      </div>
+      <div class="quick-links">
+        <span class="quick-chip" onclick="loadPreset('lofi')">Lo-fi</span>
+        <span class="quick-chip" onclick="loadPreset('focus')">Focus</span>
+        <span class="quick-chip" onclick="loadPreset('classical')">Classical</span>
+        <span class="quick-chip" onclick="loadPreset('nature')">Nature</span>
+      </div>
+    </div>
+
+    <div class="media-area">
+      <div class="media-placeholder" id="media-placeholder">
+        <div class="mp-icon">🎶</div>
+        <p>Paste a YouTube or Spotify link<br>to play while you study</p>
+      </div>
+      <div class="media-embed" id="media-embed">
+        <iframe id="media-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      </div>
+      <div class="now-playing" id="now-playing">
+        <div class="np-icon">🎵</div>
+        <div class="np-info">
+          <div class="np-title" id="np-title">—</div>
+          <div class="np-sub">Playing now</div>
+        </div>
+        <div class="np-dot"></div>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-title">Session Stats</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-val" id="stat-focus-pct">—</div>
+          <div class="stat-lbl">Focus %</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="stat-rounds">0</div>
+          <div class="stat-lbl">Rounds done</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="stat-tasks">0</div>
+          <div class="stat-lbl">Tasks done</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="stat-pokes">0</div>
+          <div class="stat-lbl">Pokes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- POKE OVERLAY -->
+<div class="poke-overlay" id="poke-overlay">
+  <div class="poke-backdrop" onclick="dismissPoke()"></div>
+  <div class="poke-card">
+    <span class="poke-emoji" id="poke-emoji">👀</span>
+    <div class="poke-title"  id="poke-title">Hey, come back!</div>
+    <div class="poke-msg"    id="poke-msg">You drifted off. <strong>You were doing so well.</strong> Let's refocus.</div>
+    <button class="poke-btn" onclick="dismissPoke()">🔒 Back to it</button>
+  </div>
+</div>
+
+<!-- BREAK TOAST -->
+<div class="break-toast" id="break-toast">
+  <span>🌿</span> Break time — step away and rest.
+</div>
+
+<script>
+  // ═══ STATE ═══════════════════════════════════════
+  let studyDur  = 25, breakDur = 5, longDur = 15;
+  let mode      = 'study';
+  let running   = false;
+  let remaining = 25 * 60;
+  let tickInt   = null;
+  let pomoCount = 0;
+  let sessionSecs = 0, sessionInt = null;
+  let todos = [];
+  let pokeCount = 0, pokeShown = false;
+  let autoPausedTimer = false;
+
+  function onAutoPauseChange() {
+    const on = document.getElementById('autopause-toggle').checked;
+    document.getElementById('autopause-label').style.color = on ? 'var(--sage)' : '';
+  }
+  let focusSecs = 0, totalSecs = 0;
+
+  const CIRCUMFERENCE = 2 * Math.PI * 96; // 603.19
+
+  // ═══ TIMER ═══════════════════════════════════════
+  function toggleTimer() {
+    running ? pauseTimer() : startTimer();
+  }
+
+  function startTimer() {
+    running = true;
+    document.getElementById('play-btn').textContent = '⏸';
+    tickInt = setInterval(tick, 1000);
+    if (!sessionInt) {
+      sessionInt = setInterval(() => {
+        sessionSecs++;
+        totalSecs++;
+        if (mode === 'study' && running) focusSecs++;
+        updateSessionClock();
+        updateStats();
+      }, 1000);
+    }
+    updateFocusState(mode === 'study' ? 'focused' : 'idle');
+    fetch('http://localhost:5050/set_active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true })
+    }).catch(() => {});
+    
+    // Refresh video feed to prevent hang
+    const camImg = document.getElementById('cam-feed');
+    camImg.style.display = 'block';
+    document.getElementById('cam-offline').style.display = 'none';
+    camImg.src = `http://localhost:5050/video_feed?${Date.now()}`;
+  }
+
+  function pauseTimer() {
+    running = false;
+    document.getElementById('play-btn').textContent = '▶';
+    clearInterval(tickInt); tickInt = null;
+    updateFocusState('idle');
+    fetch('http://localhost:5050/set_active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false })
+    }).catch(() => {});
+  }
+
+  function resetTimer() {
+    pauseTimer();
+    remaining = (mode === 'study' ? studyDur : breakDur) * 60;
+    updateDisplay(); updateRing();
+  }
+
+  function skipTimer() { pauseTimer(); onTimerEnd(); }
+
+  function tick() {
+    if (remaining <= 0) { onTimerEnd(); return; }
+    remaining--;
+    updateDisplay(); updateRing();
+  }
+
+  function onTimerEnd() {
+    clearInterval(tickInt); tickInt = null;
+    running = false;
+    document.getElementById('play-btn').textContent = '▶';
+    if (mode === 'study') {
+      pomoCount = Math.min(pomoCount + 1, 8);
+      updatePomoDots();
+      document.getElementById('stat-rounds').textContent = Math.floor(pomoCount);
+      const isLong = pomoCount % 4 === 0;
+      showBreakToast(isLong ? `Great work! Long break — ${longDur} min.` : `Nice round! Take a ${breakDur} min break.`);
+      setMode('break', isLong);
+    } else {
+      setMode('study');
+    }
+  }
+
+  function setMode(m, longBreak = false) {
+    mode = m;
+    document.getElementById('tab-study').classList.toggle('active', m === 'study');
+    document.getElementById('tab-break').classList.toggle('active', m === 'break');
+    const ring  = document.getElementById('timer-ring');
+    const label = document.getElementById('timer-label');
+    remaining   = (m === 'study' ? studyDur : (longBreak ? longDur : breakDur)) * 60;
+    ring.setAttribute('stroke', m === 'study' ? 'url(#gradStudy)' : 'url(#gradBreak)');
+    label.textContent = m === 'study' ? 'Study' : (longBreak ? 'Long Break' : 'Break');
+    updateDisplay(); updateRing();
+    updateFocusState('idle');
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(remaining/60).toString().padStart(2,'0');
+    const s = (remaining%60).toString().padStart(2,'0');
+    document.getElementById('timer-display').textContent = `${m}:${s}`;
+    document.title = `${m}:${s} · Focus Lock`;
+  }
+
+  function updateRing() {
+    const total  = (mode === 'study' ? studyDur : breakDur) * 60;
+    const offset = CIRCUMFERENCE * (1 - remaining / total);
+    document.getElementById('timer-ring').style.strokeDashoffset = offset;
+  }
+
+  function changeDur(type, delta) {
+    if (running) return;
+    if (type === 'study') {
+      studyDur = Math.max(5, Math.min(120, studyDur + delta));
+      document.getElementById('study-dur').textContent = studyDur;
+      if (mode === 'study') { remaining = studyDur * 60; updateDisplay(); updateRing(); }
+    } else if (type === 'break') {
+      breakDur = Math.max(1, Math.min(30, breakDur + delta));
+      document.getElementById('break-dur').textContent = breakDur;
+      if (mode === 'break') { remaining = breakDur * 60; updateDisplay(); updateRing(); }
+    } else {
+      longDur = Math.max(5, Math.min(60, longDur + delta));
+      document.getElementById('long-dur').textContent = longDur;
+    }
+  }
+
+  function updatePomoDots() {
+    const count = pomoCount % 4 || (pomoCount % 4 === 0 && pomoCount > 0 ? 4 : 0);
+    for (let i = 0; i < 4; i++)
+      document.getElementById(`pd${i}`).classList.toggle('done', i < (pomoCount % 4 === 0 ? 4 : pomoCount % 4));
+    if (pomoCount % 4 === 0)
+      setTimeout(() => { for(let i=0;i<4;i++) document.getElementById(`pd${i}`).classList.remove('done'); }, 2500);
+  }
+
+  function updateSessionClock() {
+    const h = Math.floor(sessionSecs/3600);
+    const m = Math.floor((sessionSecs%3600)/60).toString().padStart(2,'0');
+    const s = (sessionSecs%60).toString().padStart(2,'0');
+    document.getElementById('session-clock').textContent = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+  }
+
+  // ═══ FOCUS STATE + BACKEND POLL ══════════════════
+  let lastState = 'idle';
+  let lastReason = '';
+  let backendOnline = false;
+
+  function updateFocusState(state) {
+    lastState = state;
+    const badge = document.getElementById('focus-badge');
+    const label = document.getElementById('focus-label');
+    badge.className = `focus-badge ${state}`;
+    const labels = { focused:'Focused', distracted:'Distracted', idle:'Idle' };
+    label.textContent = labels[state] || 'Idle';
+  }
+
+  // Poll the Flask backend every 2 seconds
+  async function pollBackend() {
+    try {
+      const r = await fetch('http://localhost:5050/state', { signal: AbortSignal.timeout(1500) });
+      if (!r.ok) return;
+      const d = await r.json();
+      backendOnline = true;
+
+      const state = d.fsm_state.toLowerCase();
+      lastReason   = d.distraction_reason || '';
+
+      updateFocusState(state === 'focused' ? 'focused'
+                     : state === 'distracted' ? 'distracted' : 'idle');
+
+      // Update focus % from real backend data
+      if (d.focus_pct !== undefined)
+        document.getElementById('stat-focus-pct').textContent = `${d.focus_pct}%`;
+
+      // Trigger poke when distracted and timer running
+      if (state === 'distracted' && running && mode === 'study') {
+        triggerPoke(lastReason);
+        // Auto-pause if toggle is on
+        if (document.getElementById('autopause-toggle').checked) {
+          pauseTimer();
+          showBreakToast('⏸ Timer paused — get back on track.');
+        }
+      }
+      // Auto-resume when focused again (if auto-pause had paused it)
+      if (state === 'focused' && !running && autoPausedTimer && mode === 'study') {
+        startTimer();
+        autoPausedTimer = false;
+        showBreakToast('▶ You\'re back! Timer resumed.');
+      }
+      if (state === 'distracted' && document.getElementById('autopause-toggle').checked) {
+        autoPausedTimer = true;
+      }
+      if (state === 'focused') autoPausedTimer = false;
+
+      // Show goal bar progress from backend session time
+      if (d.session_secs) updateGoalBar(d.session_secs);
+
+    } catch(_) {
+      // Backend not running — silent fail, app works standalone
+    }
+  }
+  setInterval(pollBackend, 2000);
+  pollBackend();
+
+  function camOffline() {
+    document.getElementById('cam-feed').style.display = 'none';
+    document.getElementById('cam-offline').style.display = 'flex';
+    document.getElementById('cam-offline-text').innerHTML = running ? 'Camera offline<br><span style="font-size:.65rem">Make sure server is running</span>' : 'Camera ready<br><span style="font-size:.65rem">Press play to start tracking</span>';
+  }
+
+  // ═══ POKE (reason-aware) ══════════════════════════
+  const POKES = {
+    phone:   { e:'📱', t:'Put the phone down!',      m:'Your phone just pulled you away. <strong>It can wait.</strong> Back to work.' },
+    talking: { e:'💬', t:'Hey — focus time!',         m:'Chatting counts as distracted. <strong>Wrap it up</strong> and come back.' },
+    eating:  { e:'🍕', t:'Meal break or study?',      m:'Eating while studying splits focus. <strong>Finish up</strong> and refocus.' },
+    motion:  { e:'🏃', t:'You\'re moving around!',   m:'Looks like you got up. <strong>Settle back in</strong> when you\'re ready.' },
+    away:    { e:'👀', t:'Where did you go?',         m:'Your face left the frame. <strong>Come back</strong> and let\'s keep going.' },
+    gaze:    { e:'🌙', t:'Eyes on the screen.',       m:'Your gaze drifted. <strong>You were doing so well</strong> — refocus.' },
+    default: { e:'🌱', t:'Stay present.',             m:'Small distractions add up. <strong>Your future self will thank you.</strong>' },
+  };
+
+  function triggerPoke(reason) {
+    if (pokeShown) return;
+    pokeShown = true;
+    pokeCount++;
+    document.getElementById('stat-pokes').textContent = pokeCount;
+    const p = POKES[reason] || POKES.default;
+    document.getElementById('poke-emoji').textContent = p.e;
+    document.getElementById('poke-title').textContent = p.t;
+    document.getElementById('poke-msg').innerHTML     = p.m;
+    document.getElementById('poke-overlay').classList.add('show');
+    updateFocusState('distracted');
+  }
+
+  function dismissPoke() {
+    pokeShown = false;
+    document.getElementById('poke-overlay').classList.remove('show');
+    updateFocusState(running ? 'focused' : 'idle');
+  }
+
+  // ═══ BREAK TOAST ═════════════════════════════════
+  function showBreakToast(msg) {
+    const t = document.getElementById('break-toast');
+    t.innerHTML = `<span>🌿</span> ${msg}`;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // ═══ SESSION GOAL ══════════════════════════════════
+  let goalMins = 120;  // default 2h
+
+  function changeGoal(delta) {
+    goalMins = Math.max(30, Math.min(480, goalMins + delta));
+    const h = Math.floor(goalMins / 60);
+    const m = goalMins % 60;
+    document.getElementById('goal-val').textContent =
+      m === 0 ? `${h}h` : `${h}h ${m}m`;
+    updateGoalBar(sessionSecs);
+  }
+
+  function updateGoalBar(secs) {
+    const pct = Math.min(100, (secs / (goalMins * 60)) * 100);
+    document.getElementById('goal-bar-fill').style.width = pct + '%';
+  }
+
+  // ═══ STATS ═══════════════════════════════════════
+  function updateStats() {
+    // Only update from local timer if backend is offline
+    if (!backendOnline) {
+      const pct = totalSecs > 0 ? Math.round((focusSecs / totalSecs) * 100) : 0;
+      if (running && mode === 'study')
+        document.getElementById('stat-focus-pct').textContent = `${pct}%`;
+    }
+    updateGoalBar(sessionSecs);
+  }
+
+  // ═══ TODO ═════════════════════════════════════════
+  function addTodo() {
+    const inp  = document.getElementById('todo-input');
+    const text = inp.value.trim();
+    if (!text) return;
+    todos.push({ id: Date.now(), text, done: false });
+    inp.value = '';
+    renderTodos();
+  }
+
+  function toggleTodo(id) {
+    const t = todos.find(t => t.id === id);
+    if (t) { t.done = !t.done; renderTodos(); }
+  }
+
+  function deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id);
+    renderTodos();
+  }
+
+  function renderTodos() {
+    const items  = document.getElementById('todo-items');
+    const empty = document.getElementById('todo-empty');
+    const done  = todos.filter(t => t.done).length;
+
+    if (todos.length === 0) {
+      items.innerHTML = '';
+      empty.style.display = 'flex';
+    } else {
+      empty.style.display = 'none';
+      items.innerHTML = todos.map(t => `
+        <div class="todo-item">
+          <div class="todo-check ${t.done?'done':''}" onclick="toggleTodo(${t.id})"></div>
+          <div class="todo-text  ${t.done?'done':''}">${esc(t.text)}</div>
+          <button class="todo-del" onclick="deleteTodo(${t.id})">✕</button>
+        </div>`).join('');
+    }
+
+    document.getElementById('todo-done-count').textContent  = `${done} done`;
+    document.getElementById('todo-total-count').textContent = `${todos.length} task${todos.length!==1?'s':''}`;
+    document.getElementById('stat-tasks').textContent = done;
+    const pct = todos.length ? (done/todos.length)*100 : 0;
+    document.getElementById('todo-progress-fill').style.width = pct + '%';
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.getElementById('todo-input').addEventListener('keydown', e => { if(e.key==='Enter') addTodo(); });
+
+  // ═══ MEDIA ═══════════════════════════════════════
+  const PRESETS = {
+    lofi:      { url:'https://www.youtube.com/watch?v=jfKfPfyJRdk', label:'Lo-fi hip hop' },
+    focus:     { url:'https://www.youtube.com/watch?v=5qap5aO4i9A', label:'Chill focus beats' },
+    classical: { url:'https://www.youtube.com/watch?v=mQER0A0ej0M', label:'Classical piano' },
+    nature:    { url:'https://www.youtube.com/watch?v=eKFTSSKCzWA', label:'Forest rain sounds' },
+  };
+
+  function loadPreset(key) {
+    document.getElementById('url-input').value = PRESETS[key].url;
+    loadMedia(PRESETS[key].label);
+  }
+
+  function loadMedia(labelOverride) {
+    const raw = document.getElementById('url-input').value.trim();
+    if (!raw) return;
+    let embedUrl = null, label = labelOverride || '';
+
+    const yt = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (yt) { embedUrl = `https://www.youtube.com/embed/${yt[1]}?autoplay=1&rel=0`; if(!label) label='YouTube'; }
+
+    const sp = raw.match(/open\.spotify\.com\/(track|playlist|album|episode)\/([A-Za-z0-9]+)/);
+    if (sp) { embedUrl = `https://open.spotify.com/embed/${sp[1]}/${sp[2]}?utm_source=generator&theme=0`; if(!label) label=`Spotify ${sp[1]}`; }
+
+    if (!embedUrl) { alert('Paste a valid YouTube or Spotify URL'); return; }
+
+    document.getElementById('media-iframe').src = embedUrl;
+    document.getElementById('media-placeholder').style.display = 'none';
+    document.getElementById('media-embed').style.display = 'block';
+    document.getElementById('now-playing').style.display = 'flex';
+    document.getElementById('np-title').textContent = label;
+  }
+
+  // ═══ INIT ════════════════════════════════════════
+  updateDisplay();
+  renderTodos();
+</script>
+</body>
+</html>

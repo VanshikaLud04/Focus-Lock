@@ -1,0 +1,90 @@
+# Focus Lock
+
+Real-time productivity tracker using computer vision, adaptive sampling, and macOS OS-level programming.
+
+Three technical domains in one project:
+- **Computer Vision** -- YOLOv8 + MediaPipe head-pose estimation
+- **Systems / OS** -- macOS Accessibility API (pyobjc) & full-screen UI blocks (Tkinter)
+- **Web App / Data** -- Flask server with an interactive web dashboard and SQLite session store
+
+---
+
+## What's New?
+
+- **Web-based Focus Dashboard:** A beautiful, responsive web interface that serves as your focus hub. It includes an interactive Pomodoro timer, a dynamic To-Do list, and live tracking stats.
+- **Smart Camera Toggling:** To save battery and system resources, the camera and ML models only run when you actively start a focus session on the dashboard.
+- **Aggressive Phone Blocking:** If you pick up your phone while tracking, Focus Lock spawns an un-clickable, full-screen macOS overlay locking you out until you put the device down.
+- **Daemon-Architected Server:** The backend cleanly separates ML inference (background thread), GUI rendering (isolated subprocess), and web serving (Flask), ensuring high performance without freezing.
+
+---
+
+## Features
+
+| Feature | Status | Details |
+|---|---|---|
+| Live Web Dashboard | DONE | MJPEG stream, live state polling, study timer, task tracking. |
+| Baseline YOLO on live webcam | DONE | Detects phone, eating, drinking, and talking. |
+| Head-pose gaze estimation | DONE | Uses MediaPipe to track if you are looking at the screen. |
+| Adaptive sampling (motion) | DONE | Saves CPU by reducing heavy YOLO inference when you are completely still. |
+| FocusFSM State Machine | DONE | Smoothly transitions between IDLE, FOCUSED, DISTRACTED, and BREAK. |
+| macOS Accessibility API | DONE | Checks the active application (e.g. IDE vs YouTube). |
+| Aggressive Lock Screen | DONE | Full-screen Tkinter subprocess overlay punishing phone use. |
+| SQLite session store | DONE | Persists all session analytics and focus scores. |
+
+---
+
+## Quickstart
+
+```bash
+# 1. Clone and create virtual environment
+git clone <your-repo-url> focus-lock
+cd focus-lock
+python -m venv venv && source venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the Web Server
+python serve.py
+```
+> The server will automatically open `http://localhost:5050` in your browser. From the dashboard, add your tasks and click **Play** to start the camera and begin focus tracking!
+
+### macOS Accessibility Permission
+1. Open **System Settings -> Privacy & Security -> Accessibility**
+2. Add your Terminal app (or IDE) to the allowed list
+
+---
+
+## Project Structure
+
+```
+focuslock/
+  capture/      camera.py           -- threaded OpenCV capture
+  detection/    yolo_detector.py    -- YOLOv8 wrapper
+                gaze.py             -- MediaPipe head-pose
+                sampler.py          -- adaptive sampling (entropy)
+  fsm/          focus_fsm.py        -- state machine
+  macos/        accessibility.py    -- macOS Accessibility API
+  alerts/       lock_screen.py      -- Tkinter lock-out overlay (subprocess)
+  data/         database.py         -- SQLite session store
+  scoring/      focus_score.py      -- Focus Score algorithm
+  hud/          overlay.py          -- OpenCV HUD renderer
+
+serve.py        -- Flask server & dashboard API
+dashboard.html  -- Web interface
+config.yaml     -- Tunable parameters for inference & FSM
+```
+
+---
+
+## Privacy
+
+- **Local Inference:** No frame data ever leaves your device. Everything runs locally.
+- **Data Storage:** All session data is stored locally at `~/.focuslock/sessions.db`.
+- **Keyboard privacy:** Only keystroke *count* is measured (no key content is logged).
+
+---
+
+## Author
+
+Vanshika -- Computer Vision + Systems Project

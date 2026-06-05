@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Lock — Project Roadmap</title>
+  <meta name="description" content="Comprehensive roadmap for Focus Lock: real-time productivity tracking via computer vision, OS-level macOS integration, and adaptive sampling." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060810;
+      --surface:   #0d1022;
+      --surface2:  #131628;
+      --surface3:  #191e32;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.12);
+      --violet:    #7c5cfc;
+      --teal:      #2dd4b0;
+      --amber:     #f7c948;
+      --rose:      #f4645f;
+      --sky:       #38bdf8;
+      --pink:      #e879f9;
+      --lime:      #a3e635;
+      --orange:    #fb923c;
+      --text:      #e8eaf2;
+      --muted:     #5a6070;
+      --muted2:    #8b94a8;
+      --radius:    16px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── AMBIENT LIGHT ── */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 55% at 15% 5%,  rgba(124,92,252,.13) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 45% at 85% 90%, rgba(45,212,176,.09) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 50% 50%, rgba(247,201,72,.04) 0%, transparent 70%);
+    }
+
+    /* ── HERO ── */
+    header {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 80px 24px 60px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,92,252,.12);
+      border: 1px solid rgba(124,92,252,.28);
+      color: #a78bfa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: clamp(2.6rem, 6.5vw, 4.8rem);
+      font-weight: 900;
+      letter-spacing: -.025em;
+      line-height: 1.08;
+      background: linear-gradient(140deg, #ffffff 25%, #c4b5fd 55%, #2dd4b0 85%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+    }
+
+    .subtitle {
+      max-width: 580px;
+      margin: 0 auto 20px;
+      font-size: 1rem;
+      color: var(--muted2);
+      line-height: 1.75;
+    }
+
+    /* ── THREE DOMAINS CALLOUT ── */
+    .domains {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 52px;
+    }
+
+    .domain-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: .8rem;
+      font-weight: 600;
+      border: 1px solid;
+      letter-spacing: .02em;
+    }
+
+    .domain-chip.cv   { background: rgba(124,92,252,.1);  border-color: rgba(124,92,252,.3);  color: #c4b5fd; }
+    .domain-chip.sys  { background: rgba(45,212,176,.1);  border-color: rgba(45,212,176,.3);  color: #2dd4b0; }
+    .domain-chip.data { background: rgba(247,201,72,.1);  border-color: rgba(247,201,72,.3);  color: #f7c948; }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 60px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 26px;
+      text-align: center;
+      transition: transform .2s, border-color .25s;
+    }
+    .stat-card:hover { transform: translateY(-4px); border-color: rgba(124,92,252,.3); }
+
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--violet), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: .7rem; color: var(--muted); margin-top: 4px; letter-spacing: .07em; text-transform: uppercase; }
+
+    /* ── TIER KEY ── */
+    .tier-key {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 28px;
+      padding: 0 24px;
+    }
+
+    .tier-key-inner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .tier-card {
+      border-radius: var(--radius-sm);
+      padding: 18px 20px;
+      border: 1px solid;
+    }
+
+    .tier-card.t1 { background: rgba(244,100,95,.07);  border-color: rgba(244,100,95,.2);  }
+    .tier-card.t2 { background: rgba(247,201,72,.07);  border-color: rgba(247,201,72,.2);  }
+    .tier-card.t3 { background: rgba(90,96,112,.07);   border-color: rgba(90,96,112,.2);   }
+
+    .tier-card h4 {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .tier-card.t1 h4 { color: var(--rose); }
+    .tier-card.t2 h4 { color: var(--amber); }
+    .tier-card.t3 h4 { color: var(--muted); }
+
+    .tier-card p { font-size: .8rem; color: var(--muted2); line-height: 1.55; }
+
+    /* ── BANNERS ── */
+    .banner {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 20px;
+      padding: 0 24px;
+    }
+
+    .banner-inner {
+      padding: 18px 24px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .banner-inner.critical {
+      background: linear-gradient(135deg, rgba(247,201,72,.07), rgba(244,100,95,.07));
+      border: 1px solid rgba(247,201,72,.22);
+    }
+
+    .banner-inner.first-move {
+      background: rgba(45,212,176,.06);
+      border: 1px solid rgba(45,212,176,.2);
+    }
+
+    .banner-inner .bicon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+
+    .banner-inner h3 {
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .banner-inner.critical  h3 { color: var(--amber); }
+    .banner-inner.first-move h3 { color: var(--teal); }
+
+    .banner-inner p  { font-size: .875rem; color: var(--muted2); line-height: 1.65; }
+    .banner-inner strong.c  { color: var(--amber); }
+    .banner-inner strong.g  { color: var(--teal); }
+
+    /* ── MAIN / TIMELINE ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 120px;
+    }
+
+    .section-label {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* timeline */
+    .timeline {
+      position: relative;
+      padding-left: 44px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 24px;
+      bottom: 24px;
+      width: 2px;
+      background: linear-gradient(to bottom,
+        var(--violet) 0%,
+        var(--teal)   25%,
+        var(--sky)    40%,
+        var(--amber)  55%,
+        var(--rose)   70%,
+        var(--pink)   85%,
+        var(--lime)   100%
+      );
+      opacity: .3;
+      border-radius: 2px;
+    }
+
+    /* ── PHASE CARD ── */
+    .phase {
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .phase::before {
+      content: '';
+      position: absolute;
+      left: -37px;
+      top: 23px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--dot-color, #fff);
+      background: var(--bg);
+      transition: transform .3s, box-shadow .3s;
+      z-index: 2;
+    }
+
+    .phase.open::before {
+      transform: scale(1.45);
+      box-shadow: 0 0 16px var(--dot-color, #fff);
+    }
+
+    .phase[data-dot="violet"] { --dot-color: var(--violet); }
+    .phase[data-dot="teal"]   { --dot-color: var(--teal); }
+    .phase[data-dot="sky"]    { --dot-color: var(--sky); }
+    .phase[data-dot="amber"]  { --dot-color: var(--amber); }
+    .phase[data-dot="rose"]   { --dot-color: var(--rose); }
+    .phase[data-dot="pink"]   { --dot-color: var(--pink); }
+    .phase[data-dot="lime"]   { --dot-color: var(--lime); }
+
+    /* header */
+    .phase-header {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: background .2s, border-color .25s, box-shadow .25s;
+      user-select: none;
+      position: relative;
+    }
+
+    .phase-header:hover {
+      background: var(--surface2);
+      box-shadow: 0 6px 28px rgba(0,0,0,.35);
+    }
+
+    .phase.open .phase-header {
+      border-radius: var(--radius) var(--radius) 0 0;
+      border-bottom-color: transparent;
+    }
+
+    /* accent left bar */
+    .phase-header::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--dot-color, #fff);
+      opacity: 0;
+      transition: opacity .25s;
+    }
+    .phase-header:hover::before,
+    .phase.open .phase-header::before { opacity: 1; }
+
+    .phase-icon { font-size: 1.45rem; flex-shrink: 0; }
+
+    .phase-meta { flex: 1; min-width: 0; }
+
+    .phase-num {
+      font-size: .67rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .phase-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .phase-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+    .ptag {
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 100px;
+      border: 1px solid;
+    }
+
+    .ptag.t1    { background: rgba(244,100,95,.12);  border-color: rgba(244,100,95,.3);  color: #fca5a5; }
+    .ptag.t2    { background: rgba(247,201,72,.12);  border-color: rgba(247,201,72,.3);  color: #f7c948; }
+    .ptag.crit  { background: linear-gradient(135deg,rgba(247,201,72,.15),rgba(244,100,95,.15)); border-color: rgba(247,201,72,.4); color: var(--amber); }
+    .ptag.macos { background: rgba(56,189,248,.12);  border-color: rgba(56,189,248,.3);  color: var(--sky); }
+    .ptag.cv    { background: rgba(124,92,252,.12);  border-color: rgba(124,92,252,.3);  color: #c4b5fd; }
+    .ptag.data  { background: rgba(45,212,176,.12);  border-color: rgba(45,212,176,.3);  color: var(--teal); }
+    .ptag.os    { background: rgba(232,121,249,.12); border-color: rgba(232,121,249,.3); color: var(--pink); }
+
+    .phase-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .phase-weeks {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .76rem;
+      color: var(--muted2);
+      white-space: nowrap;
+    }
+
+    .phase-chevron {
+      font-size: .85rem;
+      color: var(--muted);
+      transition: transform .35s cubic-bezier(.4,0,.2,1);
+    }
+    .phase.open .phase-chevron { transform: rotate(180deg); }
+
+    /* body accordion */
+    .phase-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .42s cubic-bezier(.4,0,.2,1);
+    }
+    .phase.open .phase-body { grid-template-rows: 1fr; }
+
+    .phase-body-inner {
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .phase-body-content { padding: 0; transition: padding .3s; }
+    .phase.open .phase-body-content { padding: 22px 24px 24px; }
+
+    /* ── FEATURE BLOCKS inside body ── */
+    .feature-block {
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .feature-block:last-child { margin-bottom: 0; }
+
+    .feat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px;
+      background: var(--surface2);
+    }
+
+    .feat-icon { font-size: 1.1rem; }
+
+    .feat-title {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+    }
+
+    .feat-tier {
+      font-size: .6rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 100px;
+    }
+    .feat-tier.t1   { background: rgba(244,100,95,.18); color: #fca5a5; border: 1px solid rgba(244,100,95,.3); }
+    .feat-tier.t2   { background: rgba(247,201,72,.15); color: var(--amber); border: 1px solid rgba(247,201,72,.3); }
+    .feat-tier.base { background: rgba(124,92,252,.15); color: #c4b5fd; border: 1px solid rgba(124,92,252,.3); }
+
+    .feat-body {
+      padding: 14px 16px 16px;
+      background: var(--surface);
+    }
+
+    .feat-why {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.03);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,.05);
+    }
+
+    .feat-why .why-label {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .feat-why p { font-size: .8rem; color: var(--muted2); line-height: 1.6; }
+    .feat-why strong { color: var(--text); }
+
+    /* tasks */
+    .tasks { list-style: none; }
+
+    .tasks li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: .855rem;
+      color: #bcc2d4;
+      line-height: 1.55;
+    }
+
+    .tasks li:last-child { border-bottom: none; }
+
+    .tdot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .tasks li strong { color: #e8eaf2; }
+
+    /* code block */
+    .code-block {
+      background: #040609;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 9px;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      line-height: 1.7;
+      color: #a3e635;
+      margin: 12px 0 4px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .c  { color: var(--muted); }
+    .kw { color: var(--violet); }
+    .fn { color: var(--teal); }
+    .st { color: var(--amber); }
+    .cm { color: #555e78; }
+
+    /* deliverable pills */
+    .deliverables {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      font-size: .68rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 100px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+
+    .pill.v  { background: rgba(124,92,252,.14); color: #c4b5fd; border-color: rgba(124,92,252,.3); }
+    .pill.t  { background: rgba(45,212,176,.12); color: var(--teal); border-color: rgba(45,212,176,.3); }
+    .pill.a  { background: rgba(247,201,72,.12); color: var(--amber); border-color: rgba(247,201,72,.3); }
+    .pill.r  { background: rgba(244,100,95,.12); color: #fca5a5; border-color: rgba(244,100,95,.3); }
+    .pill.s  { background: rgba(56,189,248,.12); color: var(--sky); border-color: rgba(56,189,248,.3); }
+    .pill.p  { background: rgba(232,121,249,.12); color: var(--pink); border-color: rgba(232,121,249,.3); }
+    .pill.l  { background: rgba(163,230,53,.12); color: var(--lime); border-color: rgba(163,230,53,.3); }
+
+    /* complexity bar */
+    .complexity-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .cx-label { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+    .cx-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,.06);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .cx-fill {
+      height: 100%;
+      border-radius: 100px;
+    }
+
+    /* ── FUTURE WORK ── */
+    .future-section {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 20px;
+      padding: 0 24px;
+    }
+
+    .future-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px 28px;
+    }
+
+    .future-inner h2 {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .future-inner h2::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border2);
+    }
+
+    .future-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .future-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      transition: border-color .2s;
+    }
+
+    .future-item:hover { border-color: rgba(90,96,112,.4); }
+
+    .future-item .fi-icon { font-size: 1.3rem; margin-bottom: 8px; }
+    .future-item h3 { font-size: .83rem; font-weight: 700; color: #c9cdd9; margin-bottom: 5px; }
+    .future-item p  { font-size: .77rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .fab-btn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: linear-gradient(135deg, var(--violet), #9f7aea);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: .83rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 100px;
+      padding: 13px 24px;
+      cursor: pointer;
+      box-shadow: 0 8px 36px rgba(124,92,252,.5);
+      transition: transform .2s, box-shadow .2s;
+    }
+
+    .fab-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 44px rgba(124,92,252,.65); }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    @media (max-width: 640px) {
+      .timeline { padding-left: 30px; }
+      .phase::before { left: -24px; }
+      .timeline::before { left: 11px; }
+      .tier-key-inner { grid-template-columns: 1fr; }
+      .domains { flex-direction: column; align-items: center; }
+      .fab { bottom: 20px; right: 16px; }
+      .fab-btn { font-size: .78rem; padding: 11px 18px; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<!-- ══ HERO ══ -->
+<header>
+  <div class="badge">🔒 Focus Lock &nbsp;·&nbsp; Full Project Roadmap</div>
+  <h1>Systems + CV + OS<br>in One Project</h1>
+  <p class="subtitle">
+    Real-time productivity tracking via computer vision, adaptive sampling, 
+    macOS OS-level programming, and rigorous benchmarking — 
+    three technical domains that almost no undergrad portfolio touches simultaneously.
+  </p>
+
+  <div class="domains">
+    <div class="domain-chip cv">   🤖 Computer Vision &nbsp;·&nbsp; YOLO + MediaPipe</div>
+    <div class="domain-chip sys">  🍎 Systems &nbsp;·&nbsp; macOS Accessibility API</div>
+    <div class="domain-chip data"> 🗄️ Data Engineering &nbsp;·&nbsp; SQLite + FSM</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num">7</div><div class="stat-label">Phases</div></div>
+    <div class="stat-card"><div class="stat-num">10</div><div class="stat-label">Weeks</div></div>
+    <div class="stat-card"><div class="stat-num">3</div><div class="stat-label">Tier 1 Features</div></div>
+    <div class="stat-card"><div class="stat-num">FSM</div><div class="stat-label">State Engine</div></div>
+    <div class="stat-card"><div class="stat-num">SQLite</div><div class="stat-label">Session Store</div></div>
+  </div>
+</header>
+
+<!-- ══ TIER KEY ══ -->
+<div class="tier-key">
+  <div class="tier-key-inner">
+    <div class="tier-card t1">
+      <h4>🔴 Tier 1 — Non-Negotiable</h4>
+      <p>Adaptive Sampling · macOS Accessibility API · SQLite Logging. Build all three — they're what make this a systems+CV project.</p>
+    </div>
+    <div class="tier-card t2">
+      <h4>🟡 Tier 2 — One of These</h4>
+      <p>Menu Bar App (rumps) or Focus Score Algorithm. The menu bar is better for demos; the score is better for write-ups.</p>
+    </div>
+    <div class="tier-card t3">
+      <h4>⚪ Tier 3 — Future Work Only</h4>
+      <p>CoreML, Vision framework gaze detection, iCloud sync. Mention them in your report — don't build them now.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BANNERS ══ -->
+<div class="banner" style="margin-top:20px;">
+  <div class="banner-inner critical">
+    <div class="bicon">⚡</div>
+    <div>
+      <h3>Critical Path</h3>
+      <p><strong class="c">Phase 4 (Benchmarking)</strong> is everything. Phases 1–3 are just building; Phases 5–7 are just presenting.
+      The numbers you collect in <strong class="c">weeks 6–7</strong> are what transform this from "another YOLO project" into something you can confidently defend in an interview or hand to a professor.</p>
+    </div>
+  </div>
+</div>
+
+<div class="banner">
+  <div class="banner-inner first-move">
+    <div class="bicon">🚀</div>
+    <div>
+      <h3>Suggested First Move This Week</h3>
+      <p>Get <strong class="g">Phase 1 done in a day or two</strong> — baseline camera test running, repo created, professor emailed.
+      Once you see YOLO printing bounding boxes in your terminal, <strong class="g">momentum kicks in naturally.</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TIMELINE ══ -->
+<main>
+  <p class="section-label" style="margin-bottom:24px;">▸ Click any phase to expand · 7 phases · ~10 weeks</p>
+
+  <div class="timeline" id="timeline">
+
+    <!-- ════ PHASE 1 ════ -->
+    <div class="phase" data-dot="violet" id="ph1">
+      <button class="phase-header" onclick="toggle('ph1')" id="ph1-btn" aria-expanded="false">
+        <span class="phase-icon">🏗️</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 1</div>
+          <div class="phase-title">Foundation &amp; Baseline</div>
+          <div class="phase-tags">
+            <span class="ptag cv">CV</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 1–2</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph1-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">📦</span>
+              <span class="feat-title">Repo + YOLO Hello World</span>
+              <span class="feat-tier base">Foundation</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Environment:</strong> Python venv, <code>requirements.txt</code> (ultralytics, opencv-python, mediapipe, pyobjc, sqlite3, rumps), <code>.gitignore</code>, README skeleton.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Baseline camera loop:</strong> OpenCV capture → display → exit on <code>q</code>. Verify webcam/USB-cam at 30 FPS.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>YOLO hello world:</strong> Run <code>yolov8n.pt</code> on a static image, print detected class names + confidence. Then on live feed.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Email professor:</strong> One-paragraph summary, request weekly check-in cadence.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Project doc draft:</strong> Title, problem statement, goals, tech stack, domain map (CV + Systems + Data). 1 page max.</span></li>
+              </ul>
+<div class="code-block"><span class="cm"># Phase 1 end-state: YOLO live cam</span>
+<span class="kw">from</span> ultralytics <span class="kw">import</span> <span class="fn">YOLO</span>
+<span class="kw">import</span> cv2
+
+model = <span class="fn">YOLO</span>(<span class="st">"yolov8n.pt"</span>)
+cap   = cv2.<span class="fn">VideoCapture</span>(0)
+<span class="kw">while</span> cap.<span class="fn">isOpened</span>():
+    ret, frame = cap.<span class="fn">read</span>()
+    results = model.<span class="fn">predict</span>(frame, verbose=<span class="kw">False</span>)
+    cv2.<span class="fn">imshow</span>(<span class="st">"Focus Lock"</span>, results[0].<span class="fn">plot</span>())
+    <span class="kw">if</span> cv2.<span class="fn">waitKey</span>(1) == <span class="fn">ord</span>(<span class="st">'q'</span>): <span class="kw">break</span></div>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill v">📁 Repo live</span>
+            <span class="pill v">📷 Camera OK</span>
+            <span class="pill v">🤖 YOLO boxes</span>
+            <span class="pill v">📧 Prof emailed</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:18%;background:linear-gradient(90deg,var(--violet),#9f7aea)"></div></div>
+            <span class="cx-label" style="color:#fff">Low</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 2 ════ -->
+    <div class="phase" data-dot="teal" id="ph2">
+      <button class="phase-header" onclick="toggle('ph2')" id="ph2-btn" aria-expanded="false">
+        <span class="phase-icon">👁️</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 2</div>
+          <div class="phase-title">Focus Detection + Adaptive Sampling</div>
+          <div class="phase-tags">
+            <span class="ptag cv">CV</span>
+            <span class="ptag t1">Tier 1</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 2–3</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph2-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <!-- Gaze -->
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">🧠</span>
+              <span class="feat-title">Gaze Estimation + Focus Heuristic</span>
+              <span class="feat-tier base">Core</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>MediaPipe Face Mesh:</strong> Extract landmark 33 (nose tip) + iris landmarks → compute head-pose yaw &amp; pitch.</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>Focus rule:</strong> <code>abs(yaw) &lt; 20° AND abs(pitch) &lt; 15°</code> = focused. Log raw angles every sampled frame.</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>Distraction signals:</strong> Phone/tablet in YOLO detections <em>or</em> head out-of-range → <code>distracted=True</code>.</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>Live HUD overlay:</strong> Draw focus state (✅/❌), angles, FPS with OpenCV. Color-code border: green/red.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Adaptive Sampling -->
+          <div class="feature-block" style="border-color:rgba(247,201,72,.2);">
+            <div class="feat-header" style="background:rgba(247,201,72,.05);">
+              <span class="feat-icon">📡</span>
+              <span class="feat-title">Adaptive Sampling via Motion Entropy</span>
+              <span class="feat-tier t1">Tier 1</span>
+            </div>
+            <div class="feat-body">
+              <div class="feat-why">
+                <span class="why-label">Why it matters</span>
+                <p>Interviewers ask <em>"why 2 seconds?"</em> — you now have a <strong>real answer</strong>: it's not fixed, it adapts. High motion → sample faster. Static scene → slow down. This is a <strong>smarter algorithm</strong>, not a parameter tweak.</p>
+              </div>
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Frame differencing:</strong> <code>diff = abs(frame_t - frame_{t-1})</code>. Sum pixel deltas → <code>motion_score</code>.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Entropy calculation:</strong> Compute Shannon entropy of the diff histogram. High entropy = lots of change.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Sampling interval:</strong> Map entropy → interval (e.g. 0.2s–3.0s). Use exponential moving average to smooth.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Skip logic:</strong> If <code>time_since_last_sample &lt; interval</code>, pass frame through without full inference.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Log the interval:</strong> Write <code>sample_interval_ms</code> to every SQLite event row (Phase 3) for benchmarking.</span></li>
+              </ul>
+<div class="code-block"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy.stats <span class="kw">import</span> entropy <span class="kw">as</span> sp_entropy
+
+<span class="kw">def</span> <span class="fn">motion_entropy</span>(prev, curr):
+    diff  = cv2.<span class="fn">absdiff</span>(prev, curr)
+    hist  = np.<span class="fn">histogram</span>(diff.flatten(), bins=64, range=(0,256))[0]
+    hist  = hist / hist.<span class="fn">sum</span>() + 1e-9     <span class="cm"># normalise</span>
+    <span class="kw">return</span> float(<span class="fn">sp_entropy</span>(hist))           <span class="cm"># 0 = static, ~4 = chaotic</span>
+
+<span class="kw">def</span> <span class="fn">adaptive_interval</span>(entropy_val, lo=0.2, hi=3.0):
+    <span class="cm"># low entropy → long interval (save CPU), high entropy → short</span>
+    ratio = np.<span class="fn">clip</span>(1.0 - entropy_val / 4.0, 0, 1)
+    <span class="kw">return</span> lo + ratio * (hi - lo)</div>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill t">🧠 Gaze heuristic</span>
+            <span class="pill t">📐 Yaw/pitch logging</span>
+            <span class="pill t">📡 Adaptive sampler</span>
+            <span class="pill a">⚡ Entropy-driven intervals</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:48%;background:linear-gradient(90deg,var(--teal),var(--sky))"></div></div>
+            <span class="cx-label" style="color:#fff">Medium</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 3 ════ -->
+    <div class="phase" data-dot="pink" id="ph3">
+      <button class="phase-header" onclick="toggle('ph3')" id="ph3-btn" aria-expanded="false">
+        <span class="phase-icon">🔄</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 3</div>
+          <div class="phase-title">FSM · macOS API · SQLite</div>
+          <div class="phase-tags">
+            <span class="ptag os">macOS API</span>
+            <span class="ptag data">Data</span>
+            <span class="ptag t1">Tier 1 × 2</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 3–5</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph3-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <!-- FSM -->
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">🔄</span>
+              <span class="feat-title">FocusFSM State Engine</span>
+              <span class="feat-tier base">Core</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--pink)"></span><span><strong>States:</strong> <code>IDLE → FOCUSED → DISTRACTED → BREAK</code>. Map all valid transitions with time thresholds.</span></li>
+                <li><span class="tdot" style="background:var(--pink)"></span><span><strong>FocusFSM class:</strong> <code>update(focused: bool) → str</code>. Cooldown timers prevent flicker (min 1.5s in state before transition).</span></li>
+                <li><span class="tdot" style="background:var(--pink)"></span><span><strong>Session tracker:</strong> Accumulate <code>focused_s</code>, <code>distracted_s</code>, <code>break_s</code> per session.</span></li>
+                <li><span class="tdot" style="background:var(--pink)"></span><span><strong>Alert system:</strong> Distracted &gt;30s → system notification + optional audio beep. Pomodoro break reminder at 25 min.</span></li>
+              </ul>
+<div class="code-block"><span class="kw">class</span> <span class="fn">FocusFSM</span>:
+    STATES = [<span class="st">"IDLE"</span>, <span class="st">"FOCUSED"</span>, <span class="st">"DISTRACTED"</span>, <span class="st">"BREAK"</span>]
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, cooldown=1.5):
+        self.state           = <span class="st">"IDLE"</span>
+        self.cooldown        = cooldown
+        self.last_transition = <span class="fn">time</span>.<span class="fn">time</span>()
+        self.distracted_since = <span class="kw">None</span>
+
+    <span class="kw">def</span> <span class="fn">update</span>(self, focused: bool) -> str:
+        now = <span class="fn">time</span>.<span class="fn">time</span>()
+        <span class="kw">if</span> now - self.last_transition &lt; self.cooldown:
+            <span class="kw">return</span> self.state   <span class="cm"># hold, don't flicker</span>
+        <span class="cm"># ... transition logic ...</span>
+        <span class="kw">return</span> self.state</div>
+            </div>
+          </div>
+
+          <!-- Accessibility API -->
+          <div class="feature-block" style="border-color:rgba(56,189,248,.2);">
+            <div class="feat-header" style="background:rgba(56,189,248,.05);">
+              <span class="feat-icon">🍎</span>
+              <span class="feat-title">macOS Accessibility API Integration</span>
+              <span class="feat-tier t1">Tier 1</span>
+            </div>
+            <div class="feat-body">
+              <div class="feat-why">
+                <span class="why-label">Why it matters</span>
+                <p>This is <strong>genuine OS-level programming</strong>. Almost no student portfolio touches the Accessibility API. Interviewers at Apple, Google, and systems-heavy companies <strong>go wide-eyed</strong> when you mention it.</p>
+              </div>
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Install pyobjc:</strong> <code>pip install pyobjc-framework-Cocoa pyobjc-framework-ApplicationServices</code>.</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Frontmost app detector:</strong> Poll <code>NSWorkspace.sharedWorkspace().frontmostApplication()</code> every 5s → get bundle ID + name.</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Context rules:</strong> Typing in VSCode → reduce sensitivity (–30% threshold). Idle on YouTube → increase it (+40%).</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Typing detection:</strong> Use <code>CGEventTapCreate</code> to count keystrokes/min without reading content (privacy-safe).</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Log app context:</strong> Write frontmost app + keystroke rate to SQLite alongside every detection event.</span></li>
+              </ul>
+<div class="code-block"><span class="kw">from</span> AppKit <span class="kw">import</span> NSWorkspace
+
+<span class="kw">def</span> <span class="fn">get_frontmost_app</span>() -> str:
+    ws  = NSWorkspace.<span class="fn">sharedWorkspace</span>()
+    app = ws.<span class="fn">frontmostApplication</span>()
+    <span class="kw">return</span> app.<span class="fn">bundleIdentifier</span>() <span class="kw">if</span> app <span class="kw">else</span> <span class="st">"unknown"</span>
+
+<span class="cm"># Example context-aware threshold adjustment</span>
+CONTEXT_THRESHOLDS = {
+    <span class="st">"com.microsoft.VSCode"</span>:  {<span class="st">"yaw_deg"</span>: 28},  <span class="cm"># coding → relax</span>
+    <span class="st">"com.google.Chrome"</span>:     {<span class="st">"yaw_deg"</span>: 15},  <span class="cm"># browsing → strict</span>
+}</div>
+            </div>
+          </div>
+
+          <!-- SQLite -->
+          <div class="feature-block" style="border-color:rgba(45,212,176,.2);">
+            <div class="feat-header" style="background:rgba(45,212,176,.05);">
+              <span class="feat-icon">🗄️</span>
+              <span class="feat-title">Structured Logging + SQLite Session Store</span>
+              <span class="feat-tier t1">Tier 1</span>
+            </div>
+            <div class="feat-body">
+              <div class="feat-why">
+                <span class="why-label">Why it matters</span>
+                <p>Shows you think about <strong>data persistence, observability, and debugging</strong>. It's the difference between a script and a <em>daemon</em>. The real data also gives you charts to put in your write-up.</p>
+              </div>
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>Schema:</strong> <code>sessions</code> table (id, start_ts, end_ts, focus_pct, score) + <code>events</code> table (ts, state, confidence, yaw, pitch, app_bundle, sample_interval_ms, false_positive).</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>Write path:</strong> Every FSM state transition + every sampled frame event → atomic INSERT.</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>CLI report command:</strong> <code>focuslock report --today</code> → prints session table to terminal. <code>--week</code> for weekly stats.</span></li>
+                <li><span class="tdot" style="background:var(--teal)"></span><span><strong>False positive flag:</strong> User can press <code>f</code> during session to mark last event as false positive → feeds back into threshold calibration.</span></li>
+              </ul>
+<div class="code-block"><span class="cm"># Schema creation</span>
+CREATE_EVENTS = <span class="st">"""
+CREATE TABLE IF NOT EXISTS events (
+    id               INTEGER PRIMARY KEY,
+    session_id       INTEGER REFERENCES sessions(id),
+    ts               REAL NOT NULL,
+    state            TEXT NOT NULL,
+    confidence       REAL,
+    yaw_deg          REAL,
+    pitch_deg        REAL,
+    app_bundle       TEXT,
+    sample_interval  REAL,
+    false_positive   INTEGER DEFAULT 0
+)"""</span>
+
+<span class="cm"># CLI: focuslock report --today</span>
+$ focuslock report --today
+┌─────────────┬──────────┬────────────┬──────────┐
+│ Session     │ Duration │ Focus %    │ Score    │
+├─────────────┼──────────┼────────────┼──────────┤
+│ 09:14–10:02 │ 48 min   │ 78%        │ 82/100   │
+│ 14:30–15:15 │ 45 min   │ 65%        │ 71/100   │
+└─────────────┴──────────┴────────────┴──────────┘</div>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill p">🔄 FSM class</span>
+            <span class="pill s">🍎 Accessibility API</span>
+            <span class="pill t">🗄️ SQLite store</span>
+            <span class="pill t">💻 CLI report</span>
+            <span class="pill a">🔔 Alerts</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:70%;background:linear-gradient(90deg,var(--pink),var(--violet))"></div></div>
+            <span class="cx-label" style="color:#fff">High</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 4 (CRITICAL) ════ -->
+    <div class="phase" data-dot="amber" id="ph4">
+      <button class="phase-header" onclick="toggle('ph4')" id="ph4-btn" aria-expanded="false" style="border-color:rgba(247,201,72,.25);">
+        <span class="phase-icon">📊</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 4</div>
+          <div class="phase-title">Benchmarking &amp; Evaluation <span style="font-size:.65rem;background:linear-gradient(135deg,#f7c948,#f4645f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:800;">⚡ CRITICAL</span></div>
+          <div class="phase-tags">
+            <span class="ptag crit">Critical Path</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 6–7</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph4-body">
+        <div class="phase-body-inner" style="border-color:rgba(247,201,72,.12);"><div class="phase-body-content">
+
+          <div class="feature-block" style="border-color:rgba(247,201,72,.18);">
+            <div class="feat-header" style="background:rgba(247,201,72,.06);">
+              <span class="feat-icon">🔬</span>
+              <span class="feat-title">Ground-Truth Dataset + Metrics</span>
+              <span class="feat-tier base">Core</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Dataset:</strong> Record 30-min sessions with labeled focus/distract timestamps. Min 5 sessions, 2+ subjects, varied lighting.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Metrics script:</strong> Compute Precision, Recall, F1 for focus detection state vs ground truth. Frame-level and event-level.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Latency profiling:</strong> Per-frame inference time (ms). Target: &lt;50ms CPU, &lt;15ms GPU. Include adaptive sampling overhead.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Model comparison:</strong> YOLOv8n vs YOLOv8s vs YOLOv8m — F1 vs latency vs RAM tradeoff table.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Adaptive sampling impact:</strong> Compare fixed-2s vs entropy-adaptive: CPU usage, false-positive rate, event coverage.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Accessibility API impact:</strong> Show that context-aware thresholds reduce false positives by X% during coding sessions.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Edge cases:</strong> Low light, glasses, partial occlusion, multiple faces, fast movements.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Results notebook:</strong> Jupyter — confusion matrix, latency histogram, F1 vs model size, entropy distribution plots.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill a">📁 Labeled dataset</span>
+            <span class="pill a">📈 F1 / Precision / Recall</span>
+            <span class="pill a">⚡ Latency profile</span>
+            <span class="pill a">📡 Sampling comparison</span>
+            <span class="pill a">🍎 Context API impact</span>
+            <span class="pill a">📓 Jupyter notebook</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:85%;background:linear-gradient(90deg,var(--amber),var(--rose))"></div></div>
+            <span class="cx-label" style="color:#fff">Very High</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 5 ════ -->
+    <div class="phase" data-dot="rose" id="ph5">
+      <button class="phase-header" onclick="toggle('ph5')" id="ph5-btn" aria-expanded="false">
+        <span class="phase-icon">📈</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 5</div>
+          <div class="phase-title">Focus Score + Dashboard</div>
+          <div class="phase-tags">
+            <span class="ptag t2">Tier 2</span>
+            <span class="ptag data">Data</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 7–8</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph5-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <!-- Focus Score -->
+          <div class="feature-block" style="border-color:rgba(247,201,72,.18);">
+            <div class="feat-header" style="background:rgba(247,201,72,.05);">
+              <span class="feat-icon">🎯</span>
+              <span class="feat-title">Focus Score Algorithm (0–100)</span>
+              <span class="feat-tier t2">Tier 2</span>
+            </div>
+            <div class="feat-body">
+              <div class="feat-why">
+                <span class="why-label">Why it matters</span>
+                <p>You're doing <strong>signal processing on behavioral data</strong>, not just detection. Adds a <strong>data engineering angle</strong> to the CV project — makes it three domains instead of two.</p>
+              </div>
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Score formula:</strong> <code>FocusScore = 100 × (focused_s / total_s) × recovery_factor × fp_penalty</code>.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Recovery factor:</strong> Reward fast return-to-focus after a distraction (short recovery time → higher score).</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>False positive penalty:</strong> Use user-flagged false positives from SQLite to downweight noisy sessions.</span></li>
+                <li><span class="tdot" style="background:var(--amber)"></span><span><strong>Display:</strong> ASCII bar chart in terminal at session end. Show score trend over last 7 days from SQLite.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Dashboard -->
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">🖥️</span>
+              <span class="feat-title">Session History Dashboard</span>
+              <span class="feat-tier base">Core</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--rose)"></span><span><strong>Read SQLite logs:</strong> Plot focus % over time, distraction frequency heatmap by hour-of-day.</span></li>
+                <li><span class="tdot" style="background:var(--rose)"></span><span><strong>Per-app breakdown:</strong> Show focus % segmented by frontmost app (from Accessibility API data).</span></li>
+                <li><span class="tdot" style="background:var(--rose)"></span><span><strong>Export report:</strong> Auto-generate HTML/PDF — "You were focused 78% of 48 min. Top distractor: Chrome."</span></li>
+                <li><span class="tdot" style="background:var(--rose)"></span><span><strong>Optional — browser dashboard:</strong> Flask + Chart.js to stream session stats live to a browser tab.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill a">🎯 Focus Score</span>
+            <span class="pill r">📊 Charts</span>
+            <span class="pill r">📄 HTML/PDF report</span>
+            <span class="pill t">🍎 Per-app breakdown</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:55%;background:linear-gradient(90deg,var(--rose),var(--orange))"></div></div>
+            <span class="cx-label" style="color:#fff">Medium-High</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 6 ════ -->
+    <div class="phase" data-dot="violet" id="ph6">
+      <button class="phase-header" onclick="toggle('ph6')" id="ph6-btn" aria-expanded="false">
+        <span class="phase-icon">🍎</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 6</div>
+          <div class="phase-title">Menu Bar App + Polish</div>
+          <div class="phase-tags">
+            <span class="ptag t2">Tier 2</span>
+            <span class="ptag macos">macOS Native</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Week 8–9</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph6-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <!-- Menu Bar -->
+          <div class="feature-block" style="border-color:rgba(56,189,248,.2);">
+            <div class="feat-header" style="background:rgba(56,189,248,.05);">
+              <span class="feat-icon">📌</span>
+              <span class="feat-title">macOS Menu Bar App (rumps)</span>
+              <span class="feat-tier t2">Tier 2</span>
+            </div>
+            <div class="feat-body">
+              <div class="feat-why">
+                <span class="why-label">Why it matters</span>
+                <p>Shows you can build <strong>native-feeling macOS software in Python</strong>. Great for the <strong>demo GIF</strong> in your README. Replaces the clunky terminal window with a real product feel.</p>
+              </div>
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>State icon:</strong> 🟢 Deep Work / 🟡 Distracted / ⏸️ Paused — live in menu bar.</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Menu items:</strong> Session timer, today's focus %, Focus Score, separator, Pause/Resume, View Report, Quit.</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Notification integration:</strong> Use macOS <code>NSUserNotification</code> for distraction alerts (not just beeps).</span></li>
+                <li><span class="tdot" style="background:var(--sky)"></span><span><strong>Start on login:</strong> Register as a Launch Agent via a .plist — makes it feel truly shipped.</span></li>
+              </ul>
+<div class="code-block"><span class="kw">import</span> rumps
+
+<span class="kw">class</span> <span class="fn">FocusLockApp</span>(rumps.<span class="fn">App</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>(<span class="st">"🟢"</span>, quit_button=<span class="st">"Quit Focus Lock"</span>)
+        self.menu = [<span class="st">"Session: 00:00"</span>, <span class="st">"Focus: --%"</span>,
+                     <span class="kw">None</span>, <span class="st">"Pause"</span>, <span class="st">"View Report"</span>]
+
+    <span class="fn">@rumps.timer</span>(1)
+    <span class="kw">def</span> <span class="fn">tick</span>(self, sender):
+        state = fsm.<span class="fn">state</span>  <span class="cm"># get from main thread</span>
+        self.title = {<span class="st">"FOCUSED"</span>: <span class="st">"🟢"</span>, <span class="st">"DISTRACTED"</span>: <span class="st">"🔴"</span>}.get(state, <span class="st">"⏸️"</span>)</div>
+            </div>
+          </div>
+
+          <!-- Polish -->
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">✨</span>
+              <span class="feat-title">Hardening + Privacy + CI</span>
+              <span class="feat-tier base">Core</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Error handling:</strong> No webcam → graceful fallback. Missing model → helpful error + auto-download prompt.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Performance:</strong> Threading (capture + inference on separate threads). Target 30 FPS sustained on MacBook M-series.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Privacy:</strong> No frame data leaves device. Privacy mode: blur face in HUD. Keystroke count only, no key content logged.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>YAML config:</strong> Thresholds, alert timings, model path, camera index, sampling bounds — all configurable.</span></li>
+                <li><span class="tdot" style="background:var(--violet)"></span><span><strong>Test suite:</strong> pytest coverage &gt;70%. GitHub Actions CI on push.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill s">📌 Menu bar app</span>
+            <span class="pill v">🔒 Privacy mode</span>
+            <span class="pill v">⚙️ YAML config</span>
+            <span class="pill v">✅ CI/CD</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:52%;background:linear-gradient(90deg,var(--violet),var(--sky))"></div></div>
+            <span class="cx-label" style="color:#fff">Medium</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ════ PHASE 7 ════ -->
+    <div class="phase" data-dot="lime" id="ph7">
+      <button class="phase-header" onclick="toggle('ph7')" id="ph7-btn" aria-expanded="false">
+        <span class="phase-icon">🎓</span>
+        <div class="phase-meta">
+          <div class="phase-num">Phase 7</div>
+          <div class="phase-title">Write-up &amp; Presentation</div>
+          <div class="phase-tags">
+            <span class="ptag cv">Final</span>
+          </div>
+        </div>
+        <div class="phase-right">
+          <span class="phase-weeks">Weeks 9–10</span>
+          <span class="phase-chevron">▼</span>
+        </div>
+      </button>
+      <div class="phase-body" id="ph7-body">
+        <div class="phase-body-inner"><div class="phase-body-content">
+
+          <div class="feature-block">
+            <div class="feat-header">
+              <span class="feat-icon">📝</span>
+              <span class="feat-title">Technical Report + Demo + README</span>
+              <span class="feat-tier base">Ship It</span>
+            </div>
+            <div class="feat-body">
+              <ul class="tasks">
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>Technical report:</strong> Abstract, motivation, system design, FSM diagram, adaptive sampling analysis, benchmark results, Accessibility API findings, future work. IEEE format.</span></li>
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>Architecture diagram:</strong> Camera → Adaptive Sampler → YOLO → MediaPipe → FSM → SQLite + macOS API context. Draw in Excalidraw or Mermaid.</span></li>
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>Demo video:</strong> 3-min screen recording — live detection, state transitions, menu bar icon changing, distraction alert, session report export.</span></li>
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>README overhaul:</strong> GIF demo, install guide, quick-start, benchmark table, architecture diagram, privacy statement.</span></li>
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>Interview prep:</strong> STAR stories anchored on the <em>three domains</em>: "I used the macOS Accessibility API to…", "The entropy-based sampler improved CPU usage by…", "SQLite gave me real data that showed…"</span></li>
+                <li><span class="tdot" style="background:var(--lime)"></span><span><strong>Optional — arXiv preprint:</strong> If F1 ≥ 0.80 and sampling improvement is &gt;15% CPU, worth posting.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="deliverables">
+            <span class="pill l">📝 Tech report</span>
+            <span class="pill l">🎬 Demo GIF + video</span>
+            <span class="pill l">📖 README</span>
+            <span class="pill l">🎤 Interview stories</span>
+          </div>
+          <div class="complexity-row">
+            <span class="cx-label">Complexity</span>
+            <div class="cx-track"><div class="cx-fill" style="width:28%;background:linear-gradient(90deg,var(--lime),var(--teal))"></div></div>
+            <span class="cx-label" style="color:#fff">Low-Medium</span>
+          </div>
+
+        </div></div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+</main>
+
+<!-- ══ FUTURE WORK ══ -->
+<div class="future-section">
+  <div class="future-inner">
+    <h2>⚪ Tier 3 — Future Work (Mention, Don't Build)</h2>
+    <div class="future-grid">
+      <div class="future-item">
+        <div class="fi-icon">⚡</div>
+        <h3>CoreML + Apple Neural Engine</h3>
+        <p>Convert YOLOv10-nano to <code>.mlmodel</code>. Massive performance gain on M-series but complex toolchain. Mention expected FPS improvement.</p>
+      </div>
+      <div class="future-item">
+        <div class="fi-icon">👁️</div>
+        <h3>Vision Framework Gaze Detection</h3>
+        <p>Use Apple's Vision framework via <code>pyobjc</code> for FaceID-style gaze direction — sub-degree accuracy. Far out of scope, sounds incredible in a write-up.</p>
+      </div>
+      <div class="future-item">
+        <div class="fi-icon">☁️</div>
+        <h3>iCloud Sync of Session Logs</h3>
+        <p>Natural extension: sync SQLite database to iCloud Drive for cross-device session history. Mention privacy implications.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<div class="fab">
+  <button class="fab-btn" onclick="expandAll()" id="expand-all-btn">
+    <span>⚡</span> Expand All
+  </button>
+</div>
+
+<footer>
+  Focus Lock · Systems + CV + OS-Level Programming · YOLOv8 · MediaPipe · macOS Accessibility API · SQLite
+</footer>
+
+<script>
+  function toggle(id) {
+    const el = document.getElementById(id);
+    const btn = document.getElementById(id + '-btn');
+    const opening = !el.classList.contains('open');
+    el.classList.toggle('open', opening);
+    btn.setAttribute('aria-expanded', String(opening));
+  }
+
+  let allExpanded = false;
+  function expandAll() {
+    const phases = document.querySelectorAll('.phase');
+    const btn    = document.getElementById('expand-all-btn');
+    allExpanded  = !allExpanded;
+    phases.forEach(p => {
+      p.classList.toggle('open', allExpanded);
+      const b = document.getElementById(p.id + '-btn');
+      if (b) b.setAttribute('aria-expanded', String(allExpanded));
+    });
+    btn.innerHTML = allExpanded
+      ? '<span>🗕</span> Collapse All'
+      : '<span>⚡</span> Expand All';
+  }
+
+  // Open Phase 1 by default
+  toggle('ph1');
+</script>
+
+</body>
+</html>

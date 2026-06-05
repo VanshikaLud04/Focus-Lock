@@ -1,0 +1,54 @@
+# Focus Lock -- configuration
+# Edit these values before running main.py
+
+camera:
+  index: 0              # 0 = built-in webcam, 1 = USB
+  width: 1280
+  height: 720
+  fps: 30
+
+model:
+  path: "yolov8n.pt"    # yolov8n / yolov8s / yolov8m
+  confidence: 0.45      # YOLO confidence threshold
+  device: ""            # "" = auto (CPU/MPS/CUDA)
+
+gaze:
+  yaw_threshold_deg: 20    # head yaw beyond this -> distracted
+  pitch_threshold_deg: 15  # head pitch beyond this -> distracted
+
+adaptive_sampler:
+  enabled: true
+  min_interval_sec: 0.2    # fastest sample rate
+  max_interval_sec: 3.0    # slowest (static scene)
+  ema_alpha: 0.25          # smoothing factor
+
+fsm:
+  cooldown_sec: 1.5           # min time before state transition
+  distraction_alert_sec: 30   # alert after this many distracted secs
+  break_reminder_min: 25      # break reminder interval
+
+accessibility:
+  enabled: true
+  poll_interval_sec: 5.0
+  # per-app yaw threshold overrides (bundle ID -> degrees)
+  app_overrides:
+    "com.microsoft.VSCode":      28   # coding -> relax threshold
+    "com.apple.Xcode":           28
+    "com.google.Chrome":         15   # browsing -> strict
+    "com.apple.Safari":          15
+    "com.apple.youtube":         12   # video -> very strict
+
+scoring:
+  recovery_weight: 0.3     # how much fast recovery boosts score
+  fp_penalty_weight: 0.1   # how much false positives hurt score
+
+database:
+  path: "~/.focuslock/sessions.db"
+
+alerts:
+  sound: true           # play system beep on distraction alert
+  notification: true    # send macOS notification
+
+privacy:
+  blur_face_in_hud: false   # blur face region in the camera window
+  store_frames: false       # never store raw frames to disk
