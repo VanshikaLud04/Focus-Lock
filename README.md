@@ -15,8 +15,9 @@ Three technical domains in one project:
 - **Smart Camera Toggling:** To save battery and system resources, the camera and ML models only run when you actively start a focus session on the dashboard.
 - **Aggressive Phone Blocking:** If you pick up your phone while tracking, Focus Lock spawns an un-clickable, full-screen macOS overlay locking you out until you put the device down.
 - **Daemon-Architected Server:** The backend cleanly separates ML inference (background thread), GUI rendering (isolated subprocess), and web serving (Flask), ensuring high performance without freezing.
-<img width="1280" height="703" alt="image" src="https://github.com/user-attachments/assets/b701615f-2df9-4e89-981e-bf75945d708f" />
-<img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/f92b333d-a3fc-4109-92b1-d5288f5d34b3" />
+<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/f92b333d-a3fc-4109-92b1-d5288f5d34b3" />
+<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/b701615f-2df9-4e89-981e-bf75945d708f" />
+
 
 ---
 
