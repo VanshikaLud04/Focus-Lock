@@ -20,7 +20,7 @@ Three technical domains in one project:
 - **Automated Analytics:** A background thread (using `schedule`) automatically generates daily CSV productivity reports from the SQLite database.
 - **Daemon-Architected Server:** The backend cleanly separates ML inference (worker thread), camera capture (camera thread), and web serving (Flask), ensuring high performance without freezing.
 
-<img width="800" alt="Dashboard Screenshot" src="assets/dashboard_analytics.png" />
+
 <img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/f92b333d-a3fc-4109-92b1-d5288f5d34b3" />
 
 ---
