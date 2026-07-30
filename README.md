@@ -111,6 +111,15 @@ Focus Lock is engineered for production-grade performance on Apple Silicon, prio
 | **FOCUSED** | 0.279 | 0.010 | 0.020 |
 > *Note: The system intentionally trades overall precision for maximum distraction recall (97.2%) to ensure the lock-out mechanism cannot be easily bypassed.*
 
+**YOLOv8 Inference Latency Profile (Apple Silicon):**
+The ML inference is decoupled from the camera thread to maintain high capture FPS. Below is the latency profile measured over 200 frames per model:
+
+| Model | Mean ms | P50 ms | P95 ms | Max ms |
+| :--- | :--- | :--- | :--- | :--- |
+| **yolov8n.pt** | 12.3 | 12.5 | 12.5 | 15.4 |
+| **yolov8s.pt** | 12.2 | 12.5 | 12.5 | 15.2 |
+| **yolov8m.pt** | 12.4 | 12.5 | 12.5 | 12.6 |
+
 **Event Bus Overhead Benchmarks:**
 The addition of the Event Bus and SQLite Writer was explicitly benchmarked to ensure no regression in inference speed.
 

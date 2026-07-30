@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 @dataclass
 class DomainEvent:
-    schema_version: int = 1
+    pass
 
 @dataclass
 class AttentionEvent(DomainEvent):
