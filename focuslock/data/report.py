@@ -131,3 +131,50 @@ def _top_app(events: list[dict]) -> str:
         "unknown":               "--",
     }
     return _NAMES.get(bundle, bundle.split(".")[-1])
+
+
+def generate_daily_csv(db_cfg: dict, output_dir: str = "~/.focuslock/reports/") -> None:
+    """
+    Generate a CSV report for all sessions and events in the past 24 hours.
+    """
+    import csv
+    from datetime import datetime
+    
+    db = _load_db(db_cfg)
+    
+    midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    since = midnight.timestamp()
+    
+    sessions = db.get_sessions(since_ts=since)
+    if not sessions:
+        return
+        
+    out_dir = os.path.expanduser(output_dir)
+    os.makedirs(out_dir, exist_ok=True)
+    
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    csv_path = os.path.join(out_dir, f"report_{date_str}.csv")
+    
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Session ID", "Start Time", "End Time", "Duration (s)", 
+            "Focused (s)", "Distracted (s)", "Break (s)", "Idle (s)", 
+            "Focus Score", "Note"
+        ])
+        
+        for s in sessions:
+            start = datetime.fromtimestamp(s["start_ts"]).strftime("%H:%M:%S")
+            end_ts = s["end_ts"] or time.time()
+            end = datetime.fromtimestamp(end_ts).strftime("%H:%M:%S")
+            duration = end_ts - s["start_ts"]
+            
+            writer.writerow([
+                s["id"], start, end, round(duration, 1),
+                round(s["focused_sec"], 1), round(s["distracted_sec"], 1),
+                round(s["break_sec"], 1), round(s["idle_sec"], 1),
+                s["focus_score"] if s["focus_score"] is not None else "",
+                s["note"] or ""
+            ])
+    
+    print(f"Daily CSV report generated: {csv_path}")

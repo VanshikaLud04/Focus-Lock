@@ -25,3 +25,11 @@ pyyaml>=6.0.0               # config.yaml loader
 # ── Dev / Testing ─────────────────────────────────────────
 pytest>=8.0.0
 pytest-cov>=5.0.0
+
+# ── Web / Telemetry ───────────────────────────────────────
+Flask>=3.0.0
+Flask-Cors>=4.0.0
+Flask-SocketIO>=5.3.6
+eventlet>=0.35.2
+schedule>=1.2.1
+psutil>=5.9.0

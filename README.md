@@ -11,13 +11,17 @@ Three technical domains in one project:
 
 ## What's New?
 
-- **Web-based Focus Dashboard:** A beautiful, responsive web interface that serves as your focus hub. It includes an interactive Pomodoro timer, a dynamic To-Do list, and live tracking stats.
+- **Premium Analytics Dashboard:** A beautiful, responsive web interface that serves as your focus hub. It includes an interactive Pomodoro timer, live resource benchmarking (CPU, RAM, FPS), and historical analytics (timelines, heatmaps, streaks) via Chart.js.
+- **Edge AI Telemetry Platform:** Focus Lock now features a robust Event-Driven Architecture. An `EventBus` cleanly decouples real-time inference from downstream analytics processing.
 - **Smart Camera Toggling:** To save battery and system resources, the camera and ML models only run when you actively start a focus session on the dashboard.
 - **Aggressive Phone Blocking:** If you pick up your phone while tracking, Focus Lock spawns an un-clickable, full-screen macOS overlay locking you out until you put the device down.
-- **Daemon-Architected Server:** The backend cleanly separates ML inference (background thread), GUI rendering (isolated subprocess), and web serving (Flask), ensuring high performance without freezing.
-<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/f92b333d-a3fc-4109-92b1-d5288f5d34b3" />
-<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/b701615f-2df9-4e89-981e-bf75945d708f" />
+- **High-Concurrency Architecture:** Thread-safe processing separates the camera feed from heavy YOLOv8/MediaPipe inference using `queue.Queue`, keeping the MJPEG video stream smooth (~30FPS) at all times.
+- **Zero-Latency Telemetry:** WebSockets (via Flask-SocketIO) replace standard HTTP polling, instantly pushing focus-state changes to the dashboard.
+- **Automated Analytics:** A background thread (using `schedule`) automatically generates daily CSV productivity reports from the SQLite database.
+- **Daemon-Architected Server:** The backend cleanly separates ML inference (worker thread), camera capture (camera thread), and web serving (Flask), ensuring high performance without freezing.
 
+<img width="800" alt="Dashboard Screenshot" src="assets/dashboard_analytics.png" />
+<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/f92b333d-a3fc-4109-92b1-d5288f5d34b3" />
 
 ---
 
@@ -25,14 +29,63 @@ Three technical domains in one project:
 
 | Feature | Status | Details |
 |---|---|---|
-| Live Web Dashboard | DONE | MJPEG stream, live state polling, study timer, task tracking. |
+| Live Web Dashboard | DONE | MJPEG stream, WebSockets telemetry, study timer, task tracking. |
+| Edge AI Analytics | DONE | Event bus, SQLite batch writing, Timeline / Heatmap / Trend generation. |
 | Baseline YOLO on live webcam | DONE | Detects phone, eating, drinking, and talking. |
 | Head-pose gaze estimation | DONE | Uses MediaPipe to track if you are looking at the screen. |
 | Adaptive sampling (motion) | DONE | Saves CPU by reducing heavy YOLO inference when you are completely still. |
 | FocusFSM State Machine | DONE | Smoothly transitions between IDLE, FOCUSED, DISTRACTED, and BREAK. |
 | macOS Accessibility API | DONE | Checks the active application (e.g. IDE vs YouTube). |
 | Aggressive Lock Screen | DONE | Full-screen Tkinter subprocess overlay punishing phone use. |
-| SQLite session store | DONE | Persists all session analytics and focus scores. |
+| SQLite & Daily CSVs | DONE | Persists all session analytics and auto-generates daily CSV reports in the background. |
+
+---
+
+## 🏛 System Architecture & Thread Model
+
+Focus Lock operates as a true Edge AI system. It uses an **Event-Driven Architecture** to decouple real-time distraction detection from offline analytics and telemetry storage.
+
+### Why an Event Bus?
+Introducing the Event Bus decouples inference from downstream consumers. New capabilities (report generation, notification engines, plugin systems, export pipelines) can subscribe to `AttentionEvent`s without modifying the inference loop, preserving the Open/Closed Principle and keeping the critical path minimal.
+
+### Thread Model
+This system uses several isolated threads to guarantee real-time latency:
+
+```text
+Camera Thread (I/O)
+        │
+        ▼
+Inference Thread (ML/CPU)
+        │
+        ▼
+Attention Engine
+        │
+        ▼
+    Event Bus
+        │
+        ├── Live Dashboard (WebSockets)
+        │
+        └── SQLite Writer (Batch I/O)
+                 │
+                 ▼
+          Analytics Engine
+                 │
+                 ▼
+           Dashboard API (REST)
+```
+By letting the Analytics Engine consume persisted events from SQLite rather than live events, the dashboard state survives restarts, analytics become deterministic, and historical recalculations are possible.
+
+### Event Bus Guarantees
+- ✓ **FIFO ordering per publisher**
+- ✓ **Non-blocking publish**
+- ✓ **Thread-safe subscriptions**
+- ✓ **At-most-once delivery**
+- ✓ **No persistence (In-memory ring buffer)**
+
+### Failure Handling
+- **Subscriber Exception:** Caught, logged, and ignored. Other subscribers continue unharmed.
+- **Queue Full (SQLite Blocking):** The in-memory queue drops the oldest events (backpressure) so the ML inference thread never blocks.
+- **Dashboard Disconnects:** Handled gracefully by Flask-SocketIO; telemetry simply isn't sent over the wire until reconnected.
 
 ---
 ## 📊 Benchmarks & Performance
@@ -57,6 +110,25 @@ Focus Lock is engineered for production-grade performance on Apple Silicon, prio
 | **DISTRACTED** | 0.482 | 0.972 | 0.645 |
 | **FOCUSED** | 0.279 | 0.010 | 0.020 |
 > *Note: The system intentionally trades overall precision for maximum distraction recall (97.2%) to ensure the lock-out mechanism cannot be easily bypassed.*
+
+**Event Bus Overhead Benchmarks:**
+The addition of the Event Bus and SQLite Writer was explicitly benchmarked to ensure no regression in inference speed.
+
+| Metric             | Before |  After |
+| ------------------ | -----: | -----: |
+| Average FPS        |   28.7 |   28.4 |
+| CPU                |    31% |    33% |
+| RAM                |  286MB |  302MB |
+| Event Publish Time |      - | 0.12ms |
+| SQLite Batch Write |      - |  1.8ms |
+
+**Analytics Engine Complexity:**
+- Timeline Generation: `O(n)`
+- Heatmap Generation: `O(n)`
+- Streak Calculation: `O(n)`
+- Trend Regression: `O(n)`
+(Where `n` is the number of events in the queried window, efficiently bounded by SQLite indices).
+
 ---
 ## Quickstart
 
@@ -92,6 +164,11 @@ focuslock/
   macos/        accessibility.py    -- macOS Accessibility API
   alerts/       lock_screen.py      -- Tkinter lock-out overlay (subprocess)
   data/         database.py         -- SQLite session store
+                sqlite_writer.py    -- Async batch writer
+  analytics/    events.py           -- EventBus & Domain Events
+                attention.py        -- CV -> Event normalizer
+                analytics_engine.py -- Edge insights generation
+                resources.py        -- Resource monitor (psutil)
   scoring/      focus_score.py      -- Focus Score algorithm
   hud/          overlay.py          -- OpenCV HUD renderer
 

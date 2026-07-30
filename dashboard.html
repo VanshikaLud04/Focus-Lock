@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Focus Lock — Study Dashboard</title>
   <meta name="description" content="Your calm study companion — Pomodoro timer, todo list, and distraction alerts." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -591,7 +591,7 @@
     .stat-lbl  { font-size:.62rem; color:var(--muted); margin-top:2px; letter-spacing:.04em; }
 
     /* ── POKE OVERLAY ── */
-    .poke-overlay {
+    .poke-overlay, .analytics-overlay {
       position: fixed; top:0; left:0; right:0; bottom:0;
       z-index: 1000;
       display: flex; align-items: center; justify-content: center;
@@ -599,7 +599,25 @@
       opacity: 0;
       transition: opacity .3s;
     }
-    .poke-overlay.show { pointer-events:all; opacity:1; }
+    .poke-overlay.show, .analytics-overlay.show { pointer-events:all; opacity:1; }
+
+    .analytics-card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+      width: 90%; max-width: 900px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    
+    .chart-container { position: relative; height: 250px; width: 100%; margin-bottom: 20px; }
+    
+    .analytics-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .analytics-title { font-size: 1.2rem; font-weight: 800; color: var(--cream); }
+    .close-btn { cursor: pointer; color: var(--muted); font-size: 1.5rem; background: none; border: none; }
+    .close-btn:hover { color: var(--text); }
 
     .poke-backdrop {
       position: absolute; inset: 0;
@@ -1001,6 +1019,38 @@
         </div>
       </div>
     </div>
+    
+    <div class="stats-card">
+      <div class="stats-title">Resource Benchmark <span id="res-status" style="float:right;color:var(--sage);">● Live</span></div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-val" id="res-cpu">—</div>
+          <div class="stat-lbl">CPU %</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="res-ram">—</div>
+          <div class="stat-lbl">RAM (MB)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="res-fps">—</div>
+          <div class="stat-lbl">Infer FPS</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stats-card">
+      <div class="stats-title">Trends & Insights <button onclick="showAnalytics()" style="float:right;background:none;border:none;color:var(--sky);cursor:pointer;font-size:.65rem;font-weight:700;">FULL REPORT ↗</button></div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-val" id="trend-streak">—</div>
+          <div class="stat-lbl">Max Streak (m)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="trend-slope">—</div>
+          <div class="stat-lbl">14d Trend</div>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div><!-- /app -->
@@ -1021,6 +1071,31 @@
   <span>🌿</span> Break time — step away and rest.
 </div>
 
+<!-- ANALYTICS MODAL -->
+<div class="analytics-overlay" id="analytics-overlay">
+  <div class="poke-backdrop" onclick="hideAnalytics()"></div>
+  <div class="analytics-card">
+    <div class="analytics-header">
+      <div class="analytics-title">Edge AI Analytics Report</div>
+      <button class="close-btn" onclick="hideAnalytics()">✕</button>
+    </div>
+    <div style="color:var(--muted2); font-size:0.85rem; margin-bottom:20px;">
+      All data is processed strictly on-device. No telemetry leaves this machine.
+    </div>
+    
+    <div class="stats-title" style="margin-bottom:10px;">Session Timeline</div>
+    <div class="chart-container">
+      <canvas id="timelineChart"></canvas>
+    </div>
+    
+    <div class="stats-title" style="margin-bottom:10px;">30-Day Focus Heatmap</div>
+    <div class="chart-container">
+      <canvas id="heatmapChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
   // ═══ STATE ═══════════════════════════════════════
   let studyDur  = 25, breakDur = 5, longDur = 15;
@@ -1187,53 +1262,46 @@
     label.textContent = labels[state] || 'Idle';
   }
 
-  // Poll the Flask backend every 2 seconds
-  async function pollBackend() {
-    try {
-      const r = await fetch('http://localhost:5050/state', { signal: AbortSignal.timeout(1500) });
-      if (!r.ok) return;
-      const d = await r.json();
-      backendOnline = true;
+  const socket = io();
+  socket.on('connect', () => { backendOnline = true; });
+  socket.on('disconnect', () => { backendOnline = false; });
+  
+  socket.on('state_update', (d) => {
+    backendOnline = true;
 
-      const state = d.fsm_state.toLowerCase();
-      lastReason   = d.distraction_reason || '';
+    const state = d.fsm_state.toLowerCase();
+    lastReason   = d.distraction_reason || '';
 
-      updateFocusState(state === 'focused' ? 'focused'
-                     : state === 'distracted' ? 'distracted' : 'idle');
+    updateFocusState(state === 'focused' ? 'focused'
+                   : state === 'distracted' ? 'distracted' : 'idle');
 
-      // Update focus % from real backend data
-      if (d.focus_pct !== undefined)
-        document.getElementById('stat-focus-pct').textContent = `${d.focus_pct}%`;
+    // Update focus % from real backend data
+    if (d.focus_pct !== undefined)
+      document.getElementById('stat-focus-pct').textContent = `${d.focus_pct}%`;
 
-      // Trigger poke when distracted and timer running
-      if (state === 'distracted' && running && mode === 'study') {
-        triggerPoke(lastReason);
-        // Auto-pause if toggle is on
-        if (document.getElementById('autopause-toggle').checked) {
-          pauseTimer();
-          showBreakToast('⏸ Timer paused — get back on track.');
-        }
+    // Trigger poke when distracted and timer running
+    if (state === 'distracted' && running && mode === 'study') {
+      triggerPoke(lastReason);
+      // Auto-pause if toggle is on
+      if (document.getElementById('autopause-toggle').checked) {
+        pauseTimer();
+        showBreakToast('⏸ Timer paused — get back on track.');
       }
-      // Auto-resume when focused again (if auto-pause had paused it)
-      if (state === 'focused' && !running && autoPausedTimer && mode === 'study') {
-        startTimer();
-        autoPausedTimer = false;
-        showBreakToast('▶ You\'re back! Timer resumed.');
-      }
-      if (state === 'distracted' && document.getElementById('autopause-toggle').checked) {
-        autoPausedTimer = true;
-      }
-      if (state === 'focused') autoPausedTimer = false;
-
-      // Show goal bar progress from backend session time
-      if (d.session_secs) updateGoalBar(d.session_secs);
-
-    } catch(_) {
-      // Backend not running — silent fail, app works standalone
     }
-  }
-  setInterval(pollBackend, 2000);
-  pollBackend();
+    // Auto-resume when focused again (if auto-pause had paused it)
+    if (state === 'focused' && !running && autoPausedTimer && mode === 'study') {
+      startTimer();
+      autoPausedTimer = false;
+      showBreakToast('▶ You\'re back! Timer resumed.');
+    }
+    if (state === 'distracted' && document.getElementById('autopause-toggle').checked) {
+      autoPausedTimer = true;
+    }
+    if (state === 'focused') autoPausedTimer = false;
+
+    // Show goal bar progress from backend session time
+    if (d.session_secs) updateGoalBar(d.session_secs);
+  });
 
   function camOffline() {
     document.getElementById('cam-feed').style.display = 'none';
@@ -1391,9 +1459,152 @@
     document.getElementById('np-title').textContent = label;
   }
 
+  // ═══ ANALYTICS & RESOURCES POLLING ══════════════
+  
+  let timelineChart = null;
+  let heatmapChart = null;
+  
+  function fetchResources() {
+    if (!running) return;
+    fetch('http://localhost:5050/api/resources')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('res-cpu').textContent = d.cpu_percent.toFixed(1) + '%';
+        document.getElementById('res-ram').textContent = d.ram_mb.toFixed(0);
+        document.getElementById('res-fps').textContent = d.fps.toFixed(1);
+      }).catch(() => {});
+  }
+  
+  function fetchAnalytics() {
+    fetch('http://localhost:5050/api/analytics')
+      .then(r => r.json())
+      .then(d => {
+        if (d.streak !== undefined) {
+          document.getElementById('trend-streak').textContent = Math.round(d.streak / 60);
+        }
+        if (d.trends) {
+          const slope = d.trends.slope > 0 ? '+' + d.trends.slope : d.trends.slope;
+          const arrow = d.trends.trend === 'improving' ? '↗' : (d.trends.trend === 'declining' ? '↘' : '→');
+          document.getElementById('trend-slope').textContent = `${arrow} ${slope}%`;
+          document.getElementById('trend-slope').style.color = d.trends.trend === 'improving' ? 'var(--sage)' : (d.trends.trend === 'declining' ? 'var(--rose)' : 'var(--muted2)');
+        }
+        
+        if (document.getElementById('analytics-overlay').classList.contains('show')) {
+          renderCharts(d.timeline, d.heatmap);
+        }
+      }).catch(() => {});
+  }
+  
+  function showAnalytics() {
+    document.getElementById('analytics-overlay').classList.add('show');
+    fetchAnalytics();
+  }
+  
+  function hideAnalytics() {
+    document.getElementById('analytics-overlay').classList.remove('show');
+  }
+  
+  function renderCharts(timeline, heatmap) {
+    // Heatmap Chart
+    if (heatmap) {
+      const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+      const data = Array.from({length: 24}, (_, i) => heatmap[i] || 0.0);
+      
+      if (heatmapChart) heatmapChart.destroy();
+      const ctxH = document.getElementById('heatmapChart').getContext('2d');
+      heatmapChart = new Chart(ctxH, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Focus Ratio',
+            data: data,
+            backgroundColor: 'rgba(127,168,138,0.7)',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: 1.0, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { grid: { display: false } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+    
+    // Timeline Chart (Simple representation using Bar chart with floating bars)
+    if (timeline && timeline.length > 0) {
+      const sessionStart = timeline[0].start_ts;
+      
+      const datasets = [{
+        label: 'FOCUSED',
+        data: [],
+        backgroundColor: 'rgba(127,168,138,0.9)',
+      }, {
+        label: 'DISTRACTED',
+        data: [],
+        backgroundColor: 'rgba(184,125,114,0.9)',
+      }, {
+        label: 'BREAK',
+        data: [],
+        backgroundColor: 'rgba(120,152,170,0.9)',
+      }];
+      
+      // To simulate a timeline in Chart.js, we can use a horizontal bar chart
+      // where x is time and y is a single category "Session"
+      const focusData = [];
+      const distData = [];
+      const breakData = [];
+      
+      timeline.forEach(t => {
+        const startMin = (t.start_ts - sessionStart) / 60;
+        const endMin = (t.end_ts - sessionStart) / 60;
+        
+        if (t.state === 'FOCUSED') focusData.push([startMin, endMin]);
+        else if (t.state === 'DISTRACTED') distData.push([startMin, endMin]);
+        else breakData.push([startMin, endMin]);
+      });
+      
+      datasets[0].data = focusData.map(d => ({x: d, y: 'Timeline'}));
+      datasets[1].data = distData.map(d => ({x: d, y: 'Timeline'}));
+      datasets[2].data = breakData.map(d => ({x: d, y: 'Timeline'}));
+      
+      if (timelineChart) timelineChart.destroy();
+      const ctxT = document.getElementById('timelineChart').getContext('2d');
+      timelineChart = new Chart(ctxT, {
+        type: 'bar',
+        data: { datasets: datasets },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Minutes since start' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { display: false }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.raw.x[1] - ctx.raw.x[0])} min`
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+  
+  // Set intervals for polling
+  setInterval(fetchResources, 2000);
+  setInterval(fetchAnalytics, 15000); // every 15s to not spam
+
   // ═══ INIT ════════════════════════════════════════
   updateDisplay();
   renderTodos();
+  fetchAnalytics();
 </script>
 </body>
 </html>

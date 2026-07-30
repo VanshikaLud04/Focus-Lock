@@ -49,9 +49,53 @@ CREATE TABLE IF NOT EXISTS events (
 );
 """
 
+_CREATE_ATTENTION_EVENTS = """
+CREATE TABLE IF NOT EXISTS attention_events (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id       INTEGER NOT NULL REFERENCES sessions(id),
+    ts               REAL    NOT NULL,
+    state            TEXT    NOT NULL,
+    trigger          TEXT,
+    confidence       REAL,
+    active_app       TEXT,
+    fps              REAL,
+    cpu              REAL,
+    ram              REAL,
+    face_visible     INTEGER,
+    phone_detected   INTEGER,
+    gaze_yaw         REAL,
+    gaze_pitch       REAL
+);
+"""
+
+_CREATE_DAILY_SUMMARY = """
+CREATE TABLE IF NOT EXISTS daily_summary (
+    date                     TEXT PRIMARY KEY,
+    total_focus_seconds      REAL DEFAULT 0,
+    total_distracted_seconds REAL DEFAULT 0,
+    phone_pickups            INTEGER DEFAULT 0,
+    longest_streak_seconds   REAL DEFAULT 0,
+    avg_fps                  REAL,
+    avg_cpu                  REAL,
+    avg_ram                  REAL
+);
+"""
+
+_CREATE_WEEKLY_SUMMARY = """
+CREATE TABLE IF NOT EXISTS weekly_summary (
+    week_start            TEXT PRIMARY KEY,
+    avg_daily_focus_pct   REAL,
+    trend_slope           REAL,
+    best_hour             INTEGER,
+    worst_hour            INTEGER
+);
+"""
+
 _CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);",
     "CREATE INDEX IF NOT EXISTS idx_events_ts      ON events(ts);",
+    "CREATE INDEX IF NOT EXISTS idx_attention_events_session ON attention_events(session_id);",
+    "CREATE INDEX IF NOT EXISTS idx_attention_events_ts ON attention_events(ts);",
 ]
 
 
@@ -85,6 +129,9 @@ class SessionDB:
         with self._connect() as conn:
             conn.execute(_CREATE_SESSIONS)
             conn.execute(_CREATE_EVENTS)
+            conn.execute(_CREATE_ATTENTION_EVENTS)
+            conn.execute(_CREATE_DAILY_SUMMARY)
+            conn.execute(_CREATE_WEEKLY_SUMMARY)
             for idx in _CREATE_INDEXES:
                 conn.execute(idx)
 
